@@ -3,7 +3,6 @@ package com.giwon.blog.core.article.application
 import com.giwon.blog.common.exception.BusinessException
 import com.giwon.blog.common.exception.ErrorCode
 import com.giwon.blog.core.article.domain.*
-import com.giwon.blog.core.image.domain.ImageStorage
 import org.springframework.cache.CacheManager
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -23,6 +22,8 @@ class ArticleService(
         private const val CACHE_ARTICLES = "articles"
         private const val CACHE_ARTICLE_LIST = "articleList"
     }
+
+    // --- 블로그용 조회 (PUBLISHED만 캐시) ---
 
     fun findAll(pageable: Pageable): Page<Article> {
         val cache = cacheManager.getCache(CACHE_ARTICLE_LIST) ?: return articleReader.findAll(pageable)
@@ -44,26 +45,28 @@ class ArticleService(
     fun findById(id: Long): Article {
         val cache = cacheManager.getCache(CACHE_ARTICLES)
 
+        // 캐시에는 PUBLISHED만 있음
         val cached = cache?.get(id, Article::class.java)
         if (cached != null) return cached
 
         val article = articleReader.findById(id)
             ?: throw BusinessException(ErrorCode.ARTICLE_NOT_FOUND)
 
-        cache?.put(id, article)
+        // PUBLISHED만 캐시에 저장
+        if (article.status == ArticleStatus.PUBLISHED) {
+            cache?.put(id, article)
+        }
         return article
     }
+
+    // --- 어드민용 쓰기 ---
 
     @Transactional
     fun create(title: String, content: String): Article {
         val processedContent = articleDomainService.processImages(content)
         val article = Article(title = title, content = processedContent, status = ArticleStatus.DRAFT)
-        val saved = articleWriter.save(article)
-
-        cacheManager.getCache(CACHE_ARTICLES)?.put(saved.id, saved)
-        cacheManager.getCache(CACHE_ARTICLE_LIST)?.clear()
-
-        return saved
+        return articleWriter.save(article)
+        // DRAFT → 캐시 안 넣음
     }
 
     @Transactional
@@ -79,13 +82,12 @@ class ArticleService(
         article.updatedAt = LocalDateTime.now()
         val saved = articleWriter.save(article)
 
-        // 발행된 글: Write-Through (즉시 반영), 그 외: Write-Around (무효화)
         if (saved.status == ArticleStatus.PUBLISHED) {
+            // 발행된 글 수정 → 캐시 즉시 반영 (Write-Through)
             cacheManager.getCache(CACHE_ARTICLES)?.put(id, saved)
-        } else {
-            cacheManager.getCache(CACHE_ARTICLES)?.evict(id)
+            cacheManager.getCache(CACHE_ARTICLE_LIST)?.clear()
         }
-        cacheManager.getCache(CACHE_ARTICLE_LIST)?.clear()
+        // DRAFT/SCHEDULED 수정 → 캐시에 없으니 아무것도 안 함
 
         return saved
     }
@@ -98,6 +100,7 @@ class ArticleService(
         articleDomainService.cleanupAllImages(article.content)
         articleWriter.delete(article)
 
+        // 발행된 글이었을 수 있으니 캐시에서 제거
         cacheManager.getCache(CACHE_ARTICLES)?.evict(id)
         cacheManager.getCache(CACHE_ARTICLE_LIST)?.clear()
     }
@@ -116,7 +119,7 @@ class ArticleService(
         article.updatedAt = LocalDateTime.now()
         val saved = articleWriter.save(article)
 
-        // Write-Through: 발행된 글은 바로 캐시에 올려서 블로그에서 즉시 보이게
+        // 발행 → 캐시에 올림 (Write-Through)
         cacheManager.getCache(CACHE_ARTICLES)?.put(id, saved)
         cacheManager.getCache(CACHE_ARTICLE_LIST)?.clear()
 
@@ -135,11 +138,7 @@ class ArticleService(
         article.status = ArticleStatus.SCHEDULED
         article.publishedAt = publishedAt
         article.updatedAt = LocalDateTime.now()
-        val saved = articleWriter.save(article)
-
-        cacheManager.getCache(CACHE_ARTICLES)?.evict(id)
-        cacheManager.getCache(CACHE_ARTICLE_LIST)?.clear()
-
-        return saved
+        return articleWriter.save(article)
+        // SCHEDULED → 캐시 안 건드림
     }
 }

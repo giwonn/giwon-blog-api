@@ -32,17 +32,28 @@ class ArticleServiceTest {
         articleService = ArticleService(articleReader, articleWriter, articleDomainService, cacheManager)
     }
 
-    // --- 읽기 ---
+    // --- 조회: PUBLISHED만 캐시 ---
 
     @Test
-    fun `findById - 캐시에 없으면 DB에서 조회하고 캐시에 저장한다`() {
-        val article = Article(id = 1L, title = "제목", content = "내용")
+    fun `findById - PUBLISHED 글은 캐시에 저장한다`() {
+        val article = Article(id = 1L, title = "제목", content = "내용", status = ArticleStatus.PUBLISHED)
         whenever(articleReader.findById(1L)).thenReturn(article)
 
         articleService.findById(1L)
         articleService.findById(1L)
 
-        verify(articleReader, times(1)).findById(1L)
+        verify(articleReader, times(1)).findById(1L) // 두 번째는 캐시 히트
+    }
+
+    @Test
+    fun `findById - DRAFT 글은 캐시에 저장하지 않는다`() {
+        val article = Article(id = 1L, title = "제목", content = "내용", status = ArticleStatus.DRAFT)
+        whenever(articleReader.findById(1L)).thenReturn(article)
+
+        articleService.findById(1L)
+        articleService.findById(1L)
+
+        verify(articleReader, times(2)).findById(1L) // 매번 DB 조회
     }
 
     @Test
@@ -62,51 +73,37 @@ class ArticleServiceTest {
         verify(articleReader, times(1)).findAll(pageable)
     }
 
-    // --- 작성 ---
+    // --- 작성: DRAFT → 캐시 안 넣음 ---
 
     @Test
-    fun `create - DRAFT 상태로 저장한다`() {
+    fun `create - DRAFT 상태로 저장하고 캐시에 넣지 않는다`() {
         val saved = Article(id = 1L, title = "새 글", content = "내용", status = ArticleStatus.DRAFT)
-        whenever(articleDomainService.processImages("내용")).thenReturn("내용")
-        whenever(articleWriter.save(any<Article>())).thenReturn(saved)
-
-        val result = articleService.create("새 글", "내용")
-
-        assertEquals(ArticleStatus.DRAFT, result.status)
-        assertNull(result.publishedAt)
-    }
-
-    @Test
-    fun `create - 캐시에 저장한다 (Write-Through)`() {
-        val saved = Article(id = 1L, title = "새 글", content = "내용")
         whenever(articleDomainService.processImages("내용")).thenReturn("내용")
         whenever(articleWriter.save(any<Article>())).thenReturn(saved)
 
         articleService.create("새 글", "내용")
 
-        assertNotNull(cacheManager.getCache("articles")?.get(1L, Article::class.java))
+        assertNull(cacheManager.getCache("articles")?.get(1L))
     }
 
-    // --- 수정: DRAFT → Write-Around ---
+    // --- 수정: DRAFT → 캐시 안 건드림 ---
 
     @Test
-    fun `update - DRAFT 글 수정 시 캐시를 무효화한다 (Write-Around)`() {
+    fun `update - DRAFT 글 수정 시 캐시를 건드리지 않는다`() {
         val article = Article(id = 1L, title = "원래", content = "원래 내용", status = ArticleStatus.DRAFT)
         whenever(articleReader.findById(1L)).thenReturn(article)
         whenever(articleDomainService.processImages("수정 내용")).thenReturn("수정 내용")
         whenever(articleWriter.save(any<Article>())).thenReturn(article)
 
-        articleService.findById(1L)
         articleService.update(1L, "수정", "수정 내용")
-        articleService.findById(1L)
 
-        verify(articleReader, times(3)).findById(1L)
+        assertNull(cacheManager.getCache("articles")?.get(1L))
     }
 
     // --- 수정: PUBLISHED → Write-Through ---
 
     @Test
-    fun `update - PUBLISHED 글 수정 시 캐시에 즉시 반영한다 (Write-Through)`() {
+    fun `update - PUBLISHED 글 수정 시 캐시에 즉시 반영한다`() {
         val article = Article(id = 1L, title = "원래", content = "원래 내용", status = ArticleStatus.PUBLISHED)
         whenever(articleReader.findById(1L)).thenReturn(article)
         whenever(articleDomainService.processImages("수정 내용")).thenReturn("수정 내용")
@@ -114,7 +111,7 @@ class ArticleServiceTest {
 
         articleService.update(1L, "수정", "수정 내용")
 
-        // 캐시에 즉시 저장됨 → findById에서 DB 안 타야 함
+        // 캐시에 즉시 저장됨
         articleService.findById(1L)
         verify(articleReader, times(1)).findById(1L) // update 내부 1번, findById는 캐시 히트
     }
@@ -122,22 +119,23 @@ class ArticleServiceTest {
     // --- 삭제 ---
 
     @Test
-    fun `delete - DB 삭제하고 캐시도 무효화한다`() {
-        val article = Article(id = 1L, title = "제목", content = "내용")
+    fun `delete - DB 삭제하고 캐시에서도 제거한다`() {
+        val article = Article(id = 1L, title = "제목", content = "내용", status = ArticleStatus.PUBLISHED)
         whenever(articleReader.findById(1L)).thenReturn(article)
 
-        articleService.findById(1L)
+        articleService.findById(1L) // 캐시에 넣기
+        assertNotNull(cacheManager.getCache("articles")?.get(1L))
+
         articleService.delete(1L)
 
         assertNull(cacheManager.getCache("articles")?.get(1L))
         verify(articleWriter).delete(article)
-        verify(articleDomainService).cleanupAllImages("내용")
     }
 
-    // --- 발행 ---
+    // --- 발행: Write-Through ---
 
     @Test
-    fun `publish - DRAFT 글을 즉시 발행하고 캐시를 Write-Through한다`() {
+    fun `publish - 발행하고 캐시에 올린다`() {
         val article = Article(id = 1L, title = "제목", content = "내용", status = ArticleStatus.DRAFT)
         whenever(articleReader.findById(1L)).thenReturn(article)
         whenever(articleWriter.save(any<Article>())).thenAnswer { it.arguments[0] }
@@ -145,9 +143,7 @@ class ArticleServiceTest {
         val result = articleService.publish(1L)
 
         assertEquals(ArticleStatus.PUBLISHED, result.status)
-        assertNotNull(result.publishedAt)
 
-        // 발행된 글은 캐시에 올라가야 함 (Write-Through)
         val cached = cacheManager.getCache("articles")?.get(1L, Article::class.java)
         assertNotNull(cached)
         assertEquals(ArticleStatus.PUBLISHED, cached!!.status)
@@ -161,10 +157,10 @@ class ArticleServiceTest {
         assertThrows<BusinessException> { articleService.publish(1L) }
     }
 
-    // --- 예약 발행 ---
+    // --- 예약: 캐시 안 건드림 ---
 
     @Test
-    fun `schedule - DRAFT 글을 예약 발행한다`() {
+    fun `schedule - 예약 발행하고 캐시에 넣지 않는다`() {
         val article = Article(id = 1L, title = "제목", content = "내용", status = ArticleStatus.DRAFT)
         val scheduledTime = LocalDateTime.now().plusDays(1)
         whenever(articleReader.findById(1L)).thenReturn(article)
@@ -173,7 +169,7 @@ class ArticleServiceTest {
         val result = articleService.schedule(1L, scheduledTime)
 
         assertEquals(ArticleStatus.SCHEDULED, result.status)
-        assertEquals(scheduledTime, result.publishedAt)
+        assertNull(cacheManager.getCache("articles")?.get(1L))
     }
 
     @Test
