@@ -21,7 +21,7 @@ docker compose -f $COMPOSE_FILE build api-blog-${NEXT} api-admin-${NEXT}
 
 # 2. 새 컨테이너 띄우기
 echo "Starting $NEXT containers..."
-docker compose -f $COMPOSE_FILE up -d api-blog-${NEXT} api-admin-${NEXT}
+docker compose -f $COMPOSE_FILE up -d --remove-orphans api-blog-${NEXT} api-admin-${NEXT}
 
 # 3. Health check 대기
 echo "Waiting for health check..."
@@ -45,9 +45,16 @@ for i in $(seq 1 30); do
     sleep 5
 done
 
-# 4. Nginx upstream 전환 (컨테이너 안에서 직접 수정)
+# 4. Nginx upstream 전환 (volume mount 파일은 sed -i가 안 되므로 cp 방식 사용)
 echo "Switching Nginx upstream to $NEXT..."
-docker exec giwon-blog-api-nginx sh -c "sed -i 's/api-blog-${CURRENT}/api-blog-${NEXT}/g; s/api-admin-${CURRENT}/api-admin-${NEXT}/g' /etc/nginx/conf.d/default.conf && nginx -s reload"
+docker exec giwon-blog-api-nginx sh -c "
+  cat /etc/nginx/conf.d/default.conf \
+    | sed 's/api-blog-${CURRENT}/api-blog-${NEXT}/g' \
+    | sed 's/api-admin-${CURRENT}/api-admin-${NEXT}/g' \
+    > /tmp/nginx.conf \
+  && cp /tmp/nginx.conf /etc/nginx/conf.d/default.conf \
+  && nginx -s reload
+"
 
 # 5. 이전 컨테이너 제거
 echo "Stopping $CURRENT containers..."
