@@ -12,6 +12,7 @@ interface AnalyticsReader {
     fun findTopArticleStats(limit: Int): List<ArticleStatsRow>
     fun getTotalVisitorCount(): Long
     fun getVisitorCountByDate(date: LocalDate): VisitorCount
+    fun findVisitorLocations(from: LocalDateTime, to: LocalDateTime): List<VisitorLocation>
 }
 
 data class PageViewCount(val path: String, val viewCount: Long)
@@ -20,3 +21,4 @@ data class DailyPageViewCount(val date: String, val viewCount: Long)
 data class ArticleViewCount(val articleId: Long, val viewCount: Long)
 data class ArticleStatsRow(val articleId: Long, val viewCount: Long)
 data class VisitorCount(val count: Long)
+data class VisitorLocation(val ipAddress: String, val latitude: Double, val longitude: Double, val country: String?, val city: String?, val visitCount: Long)

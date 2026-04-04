@@ -22,6 +22,14 @@ class PageView(
 
     val sessionId: String? = null,
 
+    val latitude: Double? = null,
+
+    val longitude: Double? = null,
+
+    val country: String? = null,
+
+    val city: String? = null,
+
     @Column(nullable = false, updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
 )

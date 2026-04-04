@@ -26,6 +26,10 @@ class AnalyticsQueryService(
     fun getTopReferrers(from: LocalDateTime, to: LocalDateTime): List<ReferrerCount> {
         return analyticsReader.findTopReferrers(from, to)
     }
+
+    fun getVisitorLocations(from: LocalDateTime, to: LocalDateTime): List<VisitorLocation> {
+        return analyticsReader.findVisitorLocations(from, to)
+    }
 }
 
 data class AnalyticsOverview(val totalPageViews: Long, val uniqueVisitors: Long)

@@ -6,6 +6,7 @@ import com.giwon.blog.core.analytics.application.AnalyticsQueryService
 import com.giwon.blog.core.analytics.domain.DailyPageViewCount
 import com.giwon.blog.core.analytics.domain.PageViewCount
 import com.giwon.blog.core.analytics.domain.ReferrerCount
+import com.giwon.blog.core.analytics.domain.VisitorLocation
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -50,5 +51,13 @@ class AnalyticsController(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
     ): ApiResponse<List<ReferrerCount>> {
         return ApiResponse(analyticsQueryService.getTopReferrers(from.atStartOfDay(), to.atTime(LocalTime.MAX)))
+    }
+
+    @GetMapping("/visitor-locations")
+    fun getVisitorLocations(
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) from: LocalDate,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
+    ): ApiResponse<List<VisitorLocation>> {
+        return ApiResponse(analyticsQueryService.getVisitorLocations(from.atStartOfDay(), to.atTime(LocalTime.MAX)))
     }
 }

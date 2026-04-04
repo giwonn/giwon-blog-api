@@ -114,4 +114,26 @@ class QueryDslAnalyticsReader(
             .fetchOne() ?: 0L
         return VisitorCount(count)
     }
+
+    override fun findVisitorLocations(from: LocalDateTime, to: LocalDateTime): List<VisitorLocation> {
+        return queryFactory
+            .select(Projections.constructor(
+                VisitorLocation::class.java,
+                pageView.ipAddress,
+                pageView.latitude,
+                pageView.longitude,
+                pageView.country,
+                pageView.city,
+                pageView.count(),
+            ))
+            .from(pageView)
+            .where(
+                pageView.createdAt.between(from, to),
+                pageView.latitude.isNotNull,
+                pageView.longitude.isNotNull,
+            )
+            .groupBy(pageView.ipAddress, pageView.latitude, pageView.longitude, pageView.country, pageView.city)
+            .orderBy(pageView.count().desc())
+            .fetch()
+    }
 }
