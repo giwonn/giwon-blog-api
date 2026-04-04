@@ -2,11 +2,9 @@ package com.giwon.blog.core.analytics.application
 
 import com.giwon.blog.core.analytics.domain.*
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 @Service
-@Transactional(readOnly = true)
 class AnalyticsQueryService(
     private val analyticsReader: AnalyticsReader,
 ) {
