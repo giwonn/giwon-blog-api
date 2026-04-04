@@ -45,11 +45,9 @@ for i in $(seq 1 30); do
     sleep 5
 done
 
-# 4. Nginx upstream 전환
+# 4. Nginx upstream 전환 (컨테이너 안에서 직접 수정)
 echo "Switching Nginx upstream to $NEXT..."
-sed -i "s/api-blog-${CURRENT}/api-blog-${NEXT}/g" $NGINX_CONF
-sed -i "s/api-admin-${CURRENT}/api-admin-${NEXT}/g" $NGINX_CONF
-docker exec giwon-blog-api-nginx nginx -s reload
+docker exec giwon-blog-api-nginx sh -c "sed -i 's/api-blog-${CURRENT}/api-blog-${NEXT}/g; s/api-admin-${CURRENT}/api-admin-${NEXT}/g' /etc/nginx/conf.d/default.conf && nginx -s reload"
 
 # 5. 이전 컨테이너 제거
 echo "Stopping $CURRENT containers..."
