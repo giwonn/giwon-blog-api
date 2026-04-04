@@ -27,7 +27,8 @@ class AnalyticsFilter(
     ) {
         filterChain.doFilter(request, response)
 
-        if (request.method == "GET" && response.status == 200) {
+        val isArticlePath = request.requestURI.matches(Regex("^/articles/\\d+$"))
+        if (request.method == "GET" && response.status == 200 && isArticlePath) {
             val sessionId = resolveSessionId(request, response)
             analyticsCollectionService.recordPageView(
                 path = request.requestURI,
