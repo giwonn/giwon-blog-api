@@ -17,7 +17,7 @@ class Article(
     var content: String,
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "varchar(255) default 'PUBLISHED'")
     var status: ArticleStatus = ArticleStatus.DRAFT,
 
     var publishedAt: LocalDateTime? = null,
