@@ -2,7 +2,6 @@ package com.giwon.blog.core.article.infrastructure.persistence
 
 import com.giwon.blog.core.article.domain.Article
 import com.giwon.blog.core.article.domain.ArticleReader
-import com.giwon.blog.core.article.domain.ArticleStatus
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Component
@@ -21,11 +20,7 @@ class JpaArticleReader(
         return articleJpaRepository.findAll(pageable)
     }
 
-    override fun findAllByStatus(status: ArticleStatus, pageable: Pageable): Page<Article> {
-        return articleJpaRepository.findAllByStatus(status, pageable)
-    }
-
-    override fun findScheduledBefore(time: LocalDateTime): List<Article> {
-        return articleJpaRepository.findAllByStatusAndPublishedAtBefore(ArticleStatus.SCHEDULED, time)
+    override fun findPublishedAndVisible(now: LocalDateTime, pageable: Pageable): Page<Article> {
+        return articleJpaRepository.findAllByPublishedAtBeforeAndHiddenFalse(now, pageable)
     }
 }

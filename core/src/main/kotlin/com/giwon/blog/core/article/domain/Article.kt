@@ -16,19 +16,22 @@ class Article(
     @Column(nullable = false, columnDefinition = "TEXT")
     var content: String,
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "varchar(255) default 'PUBLISHED'")
-    var status: ArticleStatus = ArticleStatus.DRAFT,
+    @Column(nullable = false)
+    var publishedAt: LocalDateTime = LocalDateTime.now(),
 
-    var publishedAt: LocalDateTime? = null,
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    var hidden: Boolean = false,
+
+    var password: String? = null,
 
     @Column(nullable = false, updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now(),
-)
-
-enum class ArticleStatus {
-    DRAFT, SCHEDULED, PUBLISHED
+) {
+    val isPublished: Boolean get() = !publishedAt.isAfter(LocalDateTime.now())
+    val isScheduled: Boolean get() = publishedAt.isAfter(LocalDateTime.now())
+    val isPasswordProtected: Boolean get() = password != null
+    val isVisibleOnBlog: Boolean get() = isPublished && !hidden
 }

@@ -3,14 +3,10 @@ package com.giwon.blog.api.controller
 import com.giwon.blog.common.dto.ApiResponse
 import com.giwon.blog.core.article.application.ArticleService
 import com.giwon.blog.core.article.domain.Article
-import com.giwon.blog.core.article.domain.ArticleStatus
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/articles")
@@ -20,11 +16,14 @@ class ArticleController(
 
     @GetMapping
     fun findAll(@PageableDefault(size = 10) pageable: Pageable): ApiResponse<Page<Article>> {
-        return ApiResponse(articleService.findAllByStatus(ArticleStatus.PUBLISHED, pageable))
+        return ApiResponse(articleService.findPublishedAndVisible(pageable))
     }
 
     @GetMapping("/{id}")
-    fun findById(@PathVariable id: Long): ApiResponse<Article> {
-        return ApiResponse(articleService.findById(id))
+    fun findById(
+        @PathVariable id: Long,
+        @RequestParam(required = false) password: String?,
+    ): ApiResponse<Article> {
+        return ApiResponse(articleService.findByIdForBlog(id, password))
     }
 }

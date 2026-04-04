@@ -23,54 +23,100 @@ class ArticleService(
         private const val CACHE_ARTICLE_LIST = "articleList"
     }
 
-    // --- 블로그용 조회 (PUBLISHED만 캐시) ---
+    // --- 블로그용 조회 ---
 
-    fun findAll(pageable: Pageable): Page<Article> {
-        val cache = cacheManager.getCache(CACHE_ARTICLE_LIST) ?: return articleReader.findAll(pageable)
+    fun findPublishedAndVisible(pageable: Pageable): Page<Article> {
+        val cache = cacheManager.getCache(CACHE_ARTICLE_LIST)
         val key = pageable.toString()
 
         @Suppress("UNCHECKED_CAST")
-        val cached = cache.get(key)?.get() as? Page<Article>
+        val cached = cache?.get(key)?.get() as? Page<Article>
         if (cached != null) return cached
 
-        val result = articleReader.findAll(pageable)
-        cache.put(key, result)
+        val result = articleReader.findPublishedAndVisible(LocalDateTime.now(), pageable)
+        cache?.put(key, result)
         return result
     }
 
-    fun findAllByStatus(status: ArticleStatus, pageable: Pageable): Page<Article> {
-        return articleReader.findAllByStatus(status, pageable)
+    fun findByIdForBlog(id: Long, password: String?): Article {
+        val article = findById(id)
+
+        if (article.hidden) {
+            throw BusinessException(ErrorCode.ARTICLE_NOT_FOUND)
+        }
+        if (!article.isPublished) {
+            throw BusinessException(ErrorCode.ARTICLE_NOT_FOUND)
+        }
+        if (article.isPasswordProtected) {
+            if (password == null) {
+                throw BusinessException(ErrorCode.ARTICLE_PASSWORD_REQUIRED)
+            }
+            if (article.password != password) {
+                throw BusinessException(ErrorCode.ARTICLE_PASSWORD_INCORRECT)
+            }
+        }
+
+        return article
+    }
+
+    // --- 어드민용 조회 ---
+
+    fun findAll(pageable: Pageable): Page<Article> {
+        return articleReader.findAll(pageable)
     }
 
     fun findById(id: Long): Article {
         val cache = cacheManager.getCache(CACHE_ARTICLES)
 
-        // 캐시에는 PUBLISHED만 있음
         val cached = cache?.get(id, Article::class.java)
         if (cached != null) return cached
 
         val article = articleReader.findById(id)
             ?: throw BusinessException(ErrorCode.ARTICLE_NOT_FOUND)
 
-        // PUBLISHED만 캐시에 저장
-        if (article.status == ArticleStatus.PUBLISHED) {
+        if (article.isVisibleOnBlog) {
             cache?.put(id, article)
         }
         return article
     }
 
-    // --- 어드민용 쓰기 ---
+    // --- 쓰기 ---
 
     @Transactional
-    fun create(title: String, content: String): Article {
+    fun create(
+        title: String,
+        content: String,
+        publishedAt: LocalDateTime = LocalDateTime.now(),
+        hidden: Boolean = false,
+        password: String? = null,
+    ): Article {
         val processedContent = articleDomainService.processImages(content)
-        val article = Article(title = title, content = processedContent, status = ArticleStatus.DRAFT)
-        return articleWriter.save(article)
-        // DRAFT → 캐시 안 넣음
+        val article = Article(
+            title = title,
+            content = processedContent,
+            publishedAt = publishedAt,
+            hidden = hidden,
+            password = password,
+        )
+        val saved = articleWriter.save(article)
+
+        if (saved.isVisibleOnBlog) {
+            cacheManager.getCache(CACHE_ARTICLES)?.put(saved.id, saved)
+            cacheManager.getCache(CACHE_ARTICLE_LIST)?.clear()
+        }
+
+        return saved
     }
 
     @Transactional
-    fun update(id: Long, title: String, content: String): Article {
+    fun update(
+        id: Long,
+        title: String,
+        content: String,
+        publishedAt: LocalDateTime? = null,
+        hidden: Boolean = false,
+        password: String? = null,
+    ): Article {
         val article = articleReader.findById(id)
             ?: throw BusinessException(ErrorCode.ARTICLE_NOT_FOUND)
 
@@ -79,15 +125,18 @@ class ArticleService(
 
         article.title = title
         article.content = processedContent
+        if (publishedAt != null) article.publishedAt = publishedAt
+        article.hidden = hidden
+        article.password = password
         article.updatedAt = LocalDateTime.now()
         val saved = articleWriter.save(article)
 
-        if (saved.status == ArticleStatus.PUBLISHED) {
-            // 발행된 글 수정 → 캐시 즉시 반영 (Write-Through)
+        if (saved.isVisibleOnBlog) {
             cacheManager.getCache(CACHE_ARTICLES)?.put(id, saved)
-            cacheManager.getCache(CACHE_ARTICLE_LIST)?.clear()
+        } else {
+            cacheManager.getCache(CACHE_ARTICLES)?.evict(id)
         }
-        // DRAFT/SCHEDULED 수정 → 캐시에 없으니 아무것도 안 함
+        cacheManager.getCache(CACHE_ARTICLE_LIST)?.clear()
 
         return saved
     }
@@ -100,45 +149,7 @@ class ArticleService(
         articleDomainService.cleanupAllImages(article.content)
         articleWriter.delete(article)
 
-        // 발행된 글이었을 수 있으니 캐시에서 제거
         cacheManager.getCache(CACHE_ARTICLES)?.evict(id)
         cacheManager.getCache(CACHE_ARTICLE_LIST)?.clear()
-    }
-
-    @Transactional
-    fun publish(id: Long): Article {
-        val article = articleReader.findById(id)
-            ?: throw BusinessException(ErrorCode.ARTICLE_NOT_FOUND)
-
-        if (article.status == ArticleStatus.PUBLISHED) {
-            throw BusinessException(ErrorCode.ALREADY_PUBLISHED)
-        }
-
-        article.status = ArticleStatus.PUBLISHED
-        article.publishedAt = LocalDateTime.now()
-        article.updatedAt = LocalDateTime.now()
-        val saved = articleWriter.save(article)
-
-        // 발행 → 캐시에 올림 (Write-Through)
-        cacheManager.getCache(CACHE_ARTICLES)?.put(id, saved)
-        cacheManager.getCache(CACHE_ARTICLE_LIST)?.clear()
-
-        return saved
-    }
-
-    @Transactional
-    fun schedule(id: Long, publishedAt: LocalDateTime): Article {
-        val article = articleReader.findById(id)
-            ?: throw BusinessException(ErrorCode.ARTICLE_NOT_FOUND)
-
-        if (publishedAt.isBefore(LocalDateTime.now())) {
-            throw BusinessException(ErrorCode.INVALID_SCHEDULE_TIME)
-        }
-
-        article.status = ArticleStatus.SCHEDULED
-        article.publishedAt = publishedAt
-        article.updatedAt = LocalDateTime.now()
-        return articleWriter.save(article)
-        // SCHEDULED → 캐시 안 건드림
     }
 }
