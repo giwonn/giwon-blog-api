@@ -3,6 +3,7 @@ package com.giwon.blog.api.controller
 import com.giwon.blog.common.dto.ApiResponse
 import com.giwon.blog.core.article.application.ArticleService
 import com.giwon.blog.core.article.domain.Article
+import com.giwon.blog.core.article.domain.ArticleStatus
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
@@ -19,7 +20,7 @@ class ArticleController(
 
     @GetMapping
     fun findAll(@PageableDefault(size = 10) pageable: Pageable): ApiResponse<Page<Article>> {
-        return ApiResponse(articleService.findAll(pageable))
+        return ApiResponse(articleService.findAllByStatus(ArticleStatus.PUBLISHED, pageable))
     }
 
     @GetMapping("/{id}")

@@ -3,13 +3,16 @@ package com.giwon.blog.admin.controller
 import com.giwon.blog.common.dto.ApiResponse
 import com.giwon.blog.core.article.application.ArticleService
 import com.giwon.blog.core.article.domain.Article
+import com.giwon.blog.core.article.domain.ArticleStatus
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.NotNull
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
+import java.time.LocalDateTime
 
 @RestController
 @RequestMapping("/admin/articles")
@@ -18,8 +21,15 @@ class ArticleAdminController(
 ) {
 
     @GetMapping
-    fun findAll(@PageableDefault(size = 10) pageable: Pageable): ApiResponse<Page<Article>> {
-        return ApiResponse(articleService.findAll(pageable))
+    fun findAll(
+        @RequestParam(required = false) status: ArticleStatus?,
+        @PageableDefault(size = 10) pageable: Pageable,
+    ): ApiResponse<Page<Article>> {
+        return if (status != null) {
+            ApiResponse(articleService.findAllByStatus(status, pageable))
+        } else {
+            ApiResponse(articleService.findAll(pageable))
+        }
     }
 
     @GetMapping("/{id}")
@@ -43,9 +53,23 @@ class ArticleAdminController(
     fun delete(@PathVariable id: Long) {
         articleService.delete(id)
     }
+
+    @PutMapping("/{id}/publish")
+    fun publish(@PathVariable id: Long): ApiResponse<Article> {
+        return ApiResponse(articleService.publish(id))
+    }
+
+    @PutMapping("/{id}/schedule")
+    fun schedule(@PathVariable id: Long, @Valid @RequestBody request: ScheduleRequest): ApiResponse<Article> {
+        return ApiResponse(articleService.schedule(id, request.publishedAt))
+    }
 }
 
 data class ArticleRequest(
     @field:NotBlank val title: String,
     @field:NotBlank val content: String,
+)
+
+data class ScheduleRequest(
+    @field:NotNull val publishedAt: LocalDateTime,
 )

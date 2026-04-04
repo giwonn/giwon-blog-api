@@ -6,4 +6,6 @@ import org.springframework.data.domain.Pageable
 interface ArticleReader {
     fun findById(id: Long): Article?
     fun findAll(pageable: Pageable): Page<Article>
+    fun findAllByStatus(status: ArticleStatus, pageable: Pageable): Page<Article>
+    fun findScheduledBefore(time: java.time.LocalDateTime): List<Article>
 }

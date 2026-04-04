@@ -2,10 +2,8 @@ package com.giwon.blog.core.article.application
 
 import com.giwon.blog.common.exception.BusinessException
 import com.giwon.blog.common.exception.ErrorCode
-import com.giwon.blog.core.article.domain.Article
-import com.giwon.blog.core.article.domain.ArticleDomainService
-import com.giwon.blog.core.article.domain.ArticleReader
-import com.giwon.blog.core.article.domain.ArticleWriter
+import com.giwon.blog.core.article.domain.*
+import com.giwon.blog.core.image.domain.ImageStorage
 import org.springframework.cache.CacheManager
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -40,6 +38,10 @@ class ArticleService(
         return result
     }
 
+    fun findAllByStatus(status: ArticleStatus, pageable: Pageable): Page<Article> {
+        return articleReader.findAllByStatus(status, pageable)
+    }
+
     fun findById(id: Long): Article {
         val cache = cacheManager.getCache(CACHE_ARTICLES)
 
@@ -56,7 +58,7 @@ class ArticleService(
     @Transactional
     fun create(title: String, content: String): Article {
         val processedContent = articleDomainService.processImages(content)
-        val article = Article(title = title, content = processedContent)
+        val article = Article(title = title, content = processedContent, status = ArticleStatus.DRAFT)
         val saved = articleWriter.save(article)
 
         cacheManager.getCache(CACHE_ARTICLES)?.put(saved.id, saved)
@@ -94,5 +96,46 @@ class ArticleService(
 
         cacheManager.getCache(CACHE_ARTICLES)?.evict(id)
         cacheManager.getCache(CACHE_ARTICLE_LIST)?.clear()
+    }
+
+    @Transactional
+    fun publish(id: Long): Article {
+        val article = articleReader.findById(id)
+            ?: throw BusinessException(ErrorCode.ARTICLE_NOT_FOUND)
+
+        if (article.status == ArticleStatus.PUBLISHED) {
+            throw BusinessException(ErrorCode.ALREADY_PUBLISHED)
+        }
+
+        article.status = ArticleStatus.PUBLISHED
+        article.publishedAt = LocalDateTime.now()
+        article.updatedAt = LocalDateTime.now()
+        val saved = articleWriter.save(article)
+
+        // Write-Through: 발행된 글은 바로 캐시에 올려서 블로그에서 즉시 보이게
+        cacheManager.getCache(CACHE_ARTICLES)?.put(id, saved)
+        cacheManager.getCache(CACHE_ARTICLE_LIST)?.clear()
+
+        return saved
+    }
+
+    @Transactional
+    fun schedule(id: Long, publishedAt: LocalDateTime): Article {
+        val article = articleReader.findById(id)
+            ?: throw BusinessException(ErrorCode.ARTICLE_NOT_FOUND)
+
+        if (publishedAt.isBefore(LocalDateTime.now())) {
+            throw BusinessException(ErrorCode.INVALID_SCHEDULE_TIME)
+        }
+
+        article.status = ArticleStatus.SCHEDULED
+        article.publishedAt = publishedAt
+        article.updatedAt = LocalDateTime.now()
+        val saved = articleWriter.save(article)
+
+        cacheManager.getCache(CACHE_ARTICLES)?.evict(id)
+        cacheManager.getCache(CACHE_ARTICLE_LIST)?.clear()
+
+        return saved
     }
 }

@@ -16,9 +16,19 @@ class Article(
     @Column(nullable = false, columnDefinition = "TEXT")
     var content: String,
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    var status: ArticleStatus = ArticleStatus.DRAFT,
+
+    var publishedAt: LocalDateTime? = null,
+
     @Column(nullable = false, updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
     @Column(nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now(),
 )
+
+enum class ArticleStatus {
+    DRAFT, SCHEDULED, PUBLISHED
+}
