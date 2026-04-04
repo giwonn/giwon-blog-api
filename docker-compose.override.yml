@@ -1,0 +1,12 @@
+services:
+  api-admin:
+    ports:
+      - "8081:8081"
+
+  api-blog:
+    ports:
+      - "8080:8080"
+
+  postgres:
+    ports:
+      - "5432:5432"

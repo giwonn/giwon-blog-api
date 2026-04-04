@@ -1,0 +1,51 @@
+package com.giwon.blog.core.analytics.scheduler
+
+import com.giwon.blog.core.analytics.domain.*
+import org.springframework.scheduling.annotation.Scheduled
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
+
+@Component
+class ArticleStatsAggregator(
+    private val analyticsReader: AnalyticsReader,
+    private val analyticsWriter: AnalyticsWriter,
+) {
+
+    @Scheduled(cron = "0 0 3 * * *")
+    @Transactional
+    fun aggregate() {
+        aggregateDaily()
+        aggregateRolling()
+    }
+
+    fun aggregateDaily() {
+        val yesterday = LocalDate.now().minusDays(1)
+        val from = yesterday.atStartOfDay()
+        val to = yesterday.atTime(23, 59, 59)
+        val topPages = analyticsReader.findTopPages(from, to)
+
+        val dailyStats = topPages.mapNotNull { pv ->
+            val articleId = extractArticleId(pv.path) ?: return@mapNotNull null
+            DailyArticleStats(date = yesterday, articleId = articleId, viewCount = pv.viewCount)
+        }
+
+        analyticsWriter.saveDailyArticleStats(dailyStats)
+    }
+
+    fun aggregateRolling() {
+        val since = LocalDate.now().minusDays(30)
+        val rollingStats = analyticsReader.sumViewCountByArticleIdSince(since)
+
+        val stats = rollingStats.map { row ->
+            ArticleStats(articleId = row.articleId, viewCount = row.viewCount)
+        }
+
+        analyticsWriter.replaceArticleStats(stats)
+    }
+
+    private fun extractArticleId(path: String): Long? {
+        val match = Regex("""/articles/(\d+)""").find(path)
+        return match?.groupValues?.get(1)?.toLongOrNull()
+    }
+}
