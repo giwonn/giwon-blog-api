@@ -2,7 +2,7 @@
 set -e
 
 COMPOSE_FILE="docker-compose.yml"
-NGINX_CONF="nginx/nginx.conf"
+NGINX_CONF="nginx/default.conf"
 
 # 현재 활성 색상 확인
 if docker ps --format '{{.Names}}' | grep -q "api-blog-blue"; then
@@ -45,16 +45,10 @@ for i in $(seq 1 30); do
     sleep 5
 done
 
-# 4. Nginx upstream 전환 (volume mount 파일은 sed -i가 안 되므로 cp 방식 사용)
+# 4. Nginx upstream 전환 (디렉토리 마운트라 sed -i 가능)
 echo "Switching Nginx upstream to $NEXT..."
-docker exec giwon-blog-api-nginx sh -c "
-  cat /etc/nginx/conf.d/default.conf \
-    | sed 's/api-blog-${CURRENT}/api-blog-${NEXT}/g' \
-    | sed 's/api-admin-${CURRENT}/api-admin-${NEXT}/g' \
-    > /tmp/nginx.conf \
-  && cp /tmp/nginx.conf /etc/nginx/conf.d/default.conf \
-  && nginx -s reload
-"
+sed -i "s/api-blog-${CURRENT}/api-blog-${NEXT}/g; s/api-admin-${CURRENT}/api-admin-${NEXT}/g" $NGINX_CONF
+docker exec giwon-blog-api-nginx nginx -s reload
 
 # 5. 이전 컨테이너 제거
 echo "Stopping $CURRENT containers..."
