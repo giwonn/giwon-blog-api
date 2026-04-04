@@ -24,19 +24,18 @@ pipeline {
             }
         }
 
-        stage('Build & Deploy') {
+        stage('Ensure Nginx') {
             steps {
                 script {
-                    sh "docker compose -f docker-compose.yml build --no-cache"
-                    sh "docker compose -f docker-compose.yml up -d"
+                    sh "docker compose -f docker-compose.yml up -d nginx postgres"
                 }
             }
         }
 
-        stage('Cleanup') {
+        stage('Blue-Green Deploy') {
             steps {
                 script {
-                    sh "docker image prune -f"
+                    sh "chmod +x scripts/deploy.sh && ./scripts/deploy.sh"
                 }
             }
         }
