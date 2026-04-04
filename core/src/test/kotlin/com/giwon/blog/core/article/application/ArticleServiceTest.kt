@@ -87,11 +87,11 @@ class ArticleServiceTest {
         assertNotNull(cacheManager.getCache("articles")?.get(1L, Article::class.java))
     }
 
-    // --- 수정 ---
+    // --- 수정: DRAFT → Write-Around ---
 
     @Test
-    fun `update - DB만 업데이트하고 캐시는 무효화한다`() {
-        val article = Article(id = 1L, title = "원래", content = "원래 내용")
+    fun `update - DRAFT 글 수정 시 캐시를 무효화한다 (Write-Around)`() {
+        val article = Article(id = 1L, title = "원래", content = "원래 내용", status = ArticleStatus.DRAFT)
         whenever(articleReader.findById(1L)).thenReturn(article)
         whenever(articleDomainService.processImages("수정 내용")).thenReturn("수정 내용")
         whenever(articleWriter.save(any<Article>())).thenReturn(article)
@@ -101,6 +101,22 @@ class ArticleServiceTest {
         articleService.findById(1L)
 
         verify(articleReader, times(3)).findById(1L)
+    }
+
+    // --- 수정: PUBLISHED → Write-Through ---
+
+    @Test
+    fun `update - PUBLISHED 글 수정 시 캐시에 즉시 반영한다 (Write-Through)`() {
+        val article = Article(id = 1L, title = "원래", content = "원래 내용", status = ArticleStatus.PUBLISHED)
+        whenever(articleReader.findById(1L)).thenReturn(article)
+        whenever(articleDomainService.processImages("수정 내용")).thenReturn("수정 내용")
+        whenever(articleWriter.save(any<Article>())).thenReturn(article)
+
+        articleService.update(1L, "수정", "수정 내용")
+
+        // 캐시에 즉시 저장됨 → findById에서 DB 안 타야 함
+        articleService.findById(1L)
+        verify(articleReader, times(1)).findById(1L) // update 내부 1번, findById는 캐시 히트
     }
 
     // --- 삭제 ---

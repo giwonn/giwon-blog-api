@@ -79,7 +79,12 @@ class ArticleService(
         article.updatedAt = LocalDateTime.now()
         val saved = articleWriter.save(article)
 
-        cacheManager.getCache(CACHE_ARTICLES)?.evict(id)
+        // 발행된 글: Write-Through (즉시 반영), 그 외: Write-Around (무효화)
+        if (saved.status == ArticleStatus.PUBLISHED) {
+            cacheManager.getCache(CACHE_ARTICLES)?.put(id, saved)
+        } else {
+            cacheManager.getCache(CACHE_ARTICLES)?.evict(id)
+        }
         cacheManager.getCache(CACHE_ARTICLE_LIST)?.clear()
 
         return saved
