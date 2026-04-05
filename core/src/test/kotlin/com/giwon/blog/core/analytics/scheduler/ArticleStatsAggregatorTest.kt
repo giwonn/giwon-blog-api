@@ -1,6 +1,8 @@
 package com.giwon.blog.core.analytics.scheduler
 
 import com.giwon.blog.core.analytics.domain.*
+import com.giwon.blog.core.batch.domain.BatchJobLogger
+import com.giwon.blog.core.batch.domain.BatchJobLog
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -14,12 +16,13 @@ class ArticleStatsAggregatorTest {
 
     @Mock lateinit var analyticsReader: AnalyticsReader
     @Mock lateinit var analyticsWriter: AnalyticsWriter
+    @Mock lateinit var batchJobLogger: BatchJobLogger
 
     lateinit var aggregator: ArticleStatsAggregator
 
     @BeforeEach
     fun setUp() {
-        aggregator = ArticleStatsAggregator(analyticsReader, analyticsWriter)
+        aggregator = ArticleStatsAggregator(analyticsReader, analyticsWriter, batchJobLogger)
     }
 
     @Test
