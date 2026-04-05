@@ -2,23 +2,21 @@ package com.giwon.blog.core.article.domain
 
 import com.giwon.blog.core.image.domain.ImageStorage
 import org.springframework.stereotype.Service
-import java.util.*
 
 @Service
 class ArticleDomainService(
     private val imageStorage: ImageStorage,
 ) {
 
-    fun processImages(content: String): String {
-        val base64Pattern = Regex("""!\[([^\]]*)]\(data:image/([^;]+);base64,([^)]+)\)""")
-        return base64Pattern.replace(content) { match ->
+    private val tempUrlPattern = Regex("""!\[([^\]]*)]\((https?://[^)]*?/temp/[^)]+)\)""")
+    private val imageUrlPattern = Regex("""!\[[^\]]*]\((https?://[^)]+)\)""")
+
+    fun processNewImages(content: String, articleId: Long): String {
+        return tempUrlPattern.replace(content) { match ->
             val alt = match.groupValues[1]
-            val imageType = match.groupValues[2]
-            val base64Data = match.groupValues[3]
-            val bytes = Base64.getDecoder().decode(base64Data)
-            val fileName = "${UUID.randomUUID()}.$imageType"
-            val url = imageStorage.upload(fileName, bytes, "image/$imageType")
-            "![$alt]($url)"
+            val tempUrl = match.groupValues[2]
+            val permanentUrl = imageStorage.move(tempUrl, "articles/$articleId")
+            "![$alt]($permanentUrl)"
         }
     }
 
@@ -33,7 +31,6 @@ class ArticleDomainService(
     }
 
     private fun extractImageUrls(content: String): Set<String> {
-        val urlPattern = Regex("""!\[[^\]]*]\((https?://[^)]+)\)""")
-        return urlPattern.findAll(content).map { it.groupValues[1] }.toSet()
+        return imageUrlPattern.findAll(content).map { it.groupValues[1] }.toSet()
     }
 }

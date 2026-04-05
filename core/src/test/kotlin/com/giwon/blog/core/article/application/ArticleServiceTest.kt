@@ -78,7 +78,7 @@ class ArticleServiceTest {
     @Test
     fun `create - 즉시 발행 (publishedAt = 현재)`() {
         val now = LocalDateTime.now()
-        whenever(articleDomainService.processImages("내용")).thenReturn("내용")
+        whenever(articleDomainService.processNewImages(eq("내용"), any())).thenReturn("내용")
         whenever(articleWriter.save(any<Article>())).thenAnswer { it.arguments[0] }
 
         val result = articleService.create("제목", "내용", now, false, null)
@@ -89,7 +89,7 @@ class ArticleServiceTest {
     @Test
     fun `create - 예약 발행 (publishedAt = 미래)`() {
         val future = LocalDateTime.now().plusDays(1)
-        whenever(articleDomainService.processImages("내용")).thenReturn("내용")
+        whenever(articleDomainService.processNewImages(eq("내용"), any())).thenReturn("내용")
         whenever(articleWriter.save(any<Article>())).thenAnswer { it.arguments[0] }
 
         val result = articleService.create("제목", "내용", future, false, null)
@@ -101,7 +101,7 @@ class ArticleServiceTest {
     fun `create - 즉시 발행 시 캐시에 올린다`() {
         val now = LocalDateTime.now()
         val saved = Article(id = 1L, title = "제목", content = "내용", publishedAt = now)
-        whenever(articleDomainService.processImages("내용")).thenReturn("내용")
+        whenever(articleDomainService.processNewImages(eq("내용"), any())).thenReturn("내용")
         whenever(articleWriter.save(any<Article>())).thenReturn(saved)
 
         articleService.create("제목", "내용", now, false, null)
@@ -113,7 +113,7 @@ class ArticleServiceTest {
     fun `create - 예약 발행 시 캐시에 안 올린다`() {
         val future = LocalDateTime.now().plusDays(1)
         val saved = Article(id = 1L, title = "제목", content = "내용", publishedAt = future)
-        whenever(articleDomainService.processImages("내용")).thenReturn("내용")
+        whenever(articleDomainService.processNewImages(eq("내용"), any())).thenReturn("내용")
         whenever(articleWriter.save(any<Article>())).thenReturn(saved)
 
         articleService.create("제목", "내용", future, false, null)
@@ -127,7 +127,7 @@ class ArticleServiceTest {
     fun `update - 발행된 글 수정 시 캐시 Write-Through`() {
         val article = Article(id = 1L, title = "원래", content = "원래", publishedAt = LocalDateTime.now().minusDays(1))
         whenever(articleReader.findById(1L)).thenReturn(article)
-        whenever(articleDomainService.processImages("수정")).thenReturn("수정")
+        whenever(articleDomainService.processNewImages(eq("수정"), eq(1L))).thenReturn("수정")
         whenever(articleWriter.save(any<Article>())).thenReturn(article)
 
         articleService.update(1L, "��정", "수정", null, false, null)
@@ -156,7 +156,7 @@ class ArticleServiceTest {
     fun `update - hidden=true로 수정하면 캐시에서 제거`() {
         val article = Article(id = 1L, title = "제목", content = "내용", publishedAt = LocalDateTime.now().minusDays(1))
         whenever(articleReader.findById(1L)).thenReturn(article)
-        whenever(articleDomainService.processImages("내용")).thenReturn("내용")
+        whenever(articleDomainService.processNewImages(eq("내용"), eq(1L))).thenReturn("내용")
         whenever(articleWriter.save(any<Article>())).thenAnswer { it.arguments[0] }
 
         // 캐시에 넣기

@@ -90,15 +90,20 @@ class ArticleService(
         hidden: Boolean = false,
         password: String? = null,
     ): Article {
-        val processedContent = articleDomainService.processImages(content)
         val article = Article(
             title = title,
-            content = processedContent,
+            content = content,
             publishedAt = publishedAt,
             hidden = hidden,
             password = password,
         )
         val saved = articleWriter.save(article)
+
+        val processedContent = articleDomainService.processNewImages(saved.content, saved.id)
+        if (processedContent != saved.content) {
+            saved.content = processedContent
+            articleWriter.save(saved)
+        }
 
         if (saved.isVisibleOnBlog) {
             cacheManager.getCache(CACHE_ARTICLES)?.put(saved.id, saved)
@@ -120,7 +125,7 @@ class ArticleService(
         val article = articleReader.findById(id)
             ?: throw BusinessException(ErrorCode.ARTICLE_NOT_FOUND)
 
-        val processedContent = articleDomainService.processImages(content)
+        val processedContent = articleDomainService.processNewImages(content, id)
         articleDomainService.cleanupDeletedImages(article.content, processedContent)
 
         article.title = title
