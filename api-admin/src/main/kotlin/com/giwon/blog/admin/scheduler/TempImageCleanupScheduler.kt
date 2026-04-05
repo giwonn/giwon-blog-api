@@ -1,9 +1,12 @@
-package com.giwon.blog.core.image.scheduler
+package com.giwon.blog.admin.scheduler
 
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.scheduling.annotation.Scheduled
+import org.springframework.scheduling.TaskScheduler
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
+import org.springframework.scheduling.support.CronTrigger
 import org.springframework.stereotype.Component
+import jakarta.annotation.PostConstruct
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.Instant
@@ -16,7 +19,16 @@ class TempImageCleanupScheduler(
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    @Scheduled(cron = "0 0 * * * *")
+    @PostConstruct
+    fun init() {
+        val scheduler: TaskScheduler = ThreadPoolTaskScheduler().apply {
+            poolSize = 1
+            setThreadNamePrefix("temp-cleanup-")
+            initialize()
+        }
+        scheduler.schedule(::cleanup, CronTrigger("0 0 * * * *"))
+    }
+
     fun cleanup() {
         val tempDir = Paths.get(storagePath, "temp")
         if (!Files.exists(tempDir)) return

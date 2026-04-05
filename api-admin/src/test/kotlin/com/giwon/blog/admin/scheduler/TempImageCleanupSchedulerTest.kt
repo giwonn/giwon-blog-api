@@ -1,4 +1,4 @@
-package com.giwon.blog.core.image.scheduler
+package com.giwon.blog.admin.scheduler
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
