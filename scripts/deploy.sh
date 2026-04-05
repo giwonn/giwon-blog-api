@@ -36,6 +36,10 @@ for i in $(seq 1 30); do
 
     if [ $i -eq 30 ]; then
         echo "Health check timeout! Rolling back..."
+        echo "=== api-blog-${NEXT} logs ==="
+        docker logs --tail 200 api-blog-${NEXT} 2>&1 || true
+        echo "=== api-admin-${NEXT} logs ==="
+        docker logs --tail 200 api-admin-${NEXT} 2>&1 || true
         docker compose -f $COMPOSE_FILE stop api-blog-${NEXT} api-admin-${NEXT}
         docker compose -f $COMPOSE_FILE rm -f api-blog-${NEXT} api-admin-${NEXT}
         exit 1
