@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 
 @Component
 class LocalImageStorage(
@@ -19,9 +20,27 @@ class LocalImageStorage(
         return "$publicUrl/$name"
     }
 
+    override fun uploadToTemp(name: String, data: ByteArray, contentType: String): String {
+        val dir = Paths.get(storagePath, "temp")
+        Files.createDirectories(dir)
+        Files.write(dir.resolve(name), data)
+        return "$publicUrl/temp/$name"
+    }
+
+    override fun move(sourceUrl: String, targetDir: String): String {
+        val relativePath = sourceUrl.removePrefix("$publicUrl/")
+        val sourcePath = Paths.get(storagePath, relativePath)
+        val targetDirPath = Paths.get(storagePath, targetDir)
+        Files.createDirectories(targetDirPath)
+        val fileName = sourcePath.fileName.toString()
+        val targetPath = targetDirPath.resolve(fileName)
+        Files.move(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING)
+        return "$publicUrl/$targetDir/$fileName"
+    }
+
     override fun delete(url: String) {
-        val fileName = url.substringAfterLast("/")
-        val file = Paths.get(storagePath, fileName)
+        val relativePath = url.removePrefix("$publicUrl/")
+        val file = Paths.get(storagePath, relativePath)
         Files.deleteIfExists(file)
     }
 }
