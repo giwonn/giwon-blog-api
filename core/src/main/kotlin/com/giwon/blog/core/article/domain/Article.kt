@@ -30,8 +30,10 @@ class Article(
     @Column(nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now(),
 ) {
-    val isPublished: Boolean get() = !publishedAt.isAfter(LocalDateTime.now())
-    val isScheduled: Boolean get() = publishedAt.isAfter(LocalDateTime.now())
+    @Suppress("SENSELESS_COMPARISON")
+    val isPublished: Boolean get() = publishedAt != null && !publishedAt.isAfter(LocalDateTime.now())
+    @Suppress("SENSELESS_COMPARISON")
+    val isScheduled: Boolean get() = publishedAt != null && publishedAt.isAfter(LocalDateTime.now())
     val isPasswordProtected: Boolean get() = password != null
     val isVisibleOnBlog: Boolean get() = isPublished && !hidden
 }
