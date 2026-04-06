@@ -34,7 +34,10 @@ class QueryDslAnalyticsReader(
             ))
             .from(pageView)
             .join(article).on(article.id.eq(articleIdExpr))
-            .where(pageView.createdAt.between(from, to))
+            .where(
+                pageView.createdAt.between(from, to),
+                pageView.path.like("/articles/%"),
+            )
             .groupBy(article.id, article.title)
             .orderBy(pageView.count().desc())
             .fetch()
