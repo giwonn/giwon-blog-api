@@ -19,8 +19,8 @@ class AnalyticsFilter(
     ) {
         filterChain.doFilter(request, response)
 
-        val isTrackable = request.requestURI.matches(Regex("^/articles(/\\d+)?$"))
-        if (request.method == "GET" && response.status == 200 && isTrackable) {
+        val isExcluded = request.requestURI.startsWith("/sidebar/") || request.requestURI == "/health"
+        if (request.method == "GET" && response.status == 200 && !isExcluded) {
             val sessionId = request.getHeader("X-Session-Id")
             analyticsCollectionService.recordPageView(
                 path = request.requestURI,
