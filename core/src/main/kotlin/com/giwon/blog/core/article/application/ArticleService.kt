@@ -29,12 +29,11 @@ class ArticleService(
         val cache = cacheManager.getCache(CACHE_ARTICLE_LIST)
         val key = pageable.toString()
 
-        @Suppress("UNCHECKED_CAST")
-        val cached = cache?.get(key)?.get() as? Page<Article>
-        if (cached != null) return cached
+        val cached = cache?.get(key, CachedArticlePage::class.java)
+        if (cached != null) return cached.toPage()
 
         val result = articleReader.findPublishedAndVisible(LocalDateTime.now(), pageable)
-        cache?.put(key, result)
+        cache?.put(key, CachedArticlePage.from(result))
         return result
     }
 
@@ -68,14 +67,14 @@ class ArticleService(
     fun findById(id: Long): Article {
         val cache = cacheManager.getCache(CACHE_ARTICLES)
 
-        val cached = cache?.get(id, Article::class.java)
-        if (cached != null) return cached
+        val cached = cache?.get(id, CachedArticle::class.java)
+        if (cached != null) return cached.toEntity()
 
         val article = articleReader.findById(id)
             ?: throw BusinessException(ErrorCode.ARTICLE_NOT_FOUND)
 
         if (article.isVisibleOnBlog) {
-            cache?.put(id, article)
+            cache?.put(id, CachedArticle.from(article))
         }
         return article
     }
@@ -106,7 +105,7 @@ class ArticleService(
         }
 
         if (saved.isVisibleOnBlog) {
-            cacheManager.getCache(CACHE_ARTICLES)?.put(saved.id, saved)
+            cacheManager.getCache(CACHE_ARTICLES)?.put(saved.id, CachedArticle.from(saved))
             cacheManager.getCache(CACHE_ARTICLE_LIST)?.clear()
         }
 
@@ -137,7 +136,7 @@ class ArticleService(
         val saved = articleWriter.save(article)
 
         if (saved.isVisibleOnBlog) {
-            cacheManager.getCache(CACHE_ARTICLES)?.put(id, saved)
+            cacheManager.getCache(CACHE_ARTICLES)?.put(id, CachedArticle.from(saved))
         } else {
             cacheManager.getCache(CACHE_ARTICLES)?.evict(id)
         }

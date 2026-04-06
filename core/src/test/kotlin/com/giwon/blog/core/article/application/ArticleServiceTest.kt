@@ -11,7 +11,7 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.*
 import org.springframework.cache.CacheManager
-import org.springframework.cache.caffeine.CaffeineCacheManager
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import java.time.LocalDateTime
@@ -28,7 +28,7 @@ class ArticleServiceTest {
 
     @BeforeEach
     fun setUp() {
-        cacheManager = CaffeineCacheManager("articles", "articleList")
+        cacheManager = ConcurrentMapCacheManager("articles", "articleList")
         articleService = ArticleService(articleReader, articleWriter, articleDomainService, cacheManager)
     }
 
@@ -130,7 +130,7 @@ class ArticleServiceTest {
         whenever(articleDomainService.processNewImages(eq("수정"), eq(1L))).thenReturn("수정")
         whenever(articleWriter.save(any<Article>())).thenReturn(article)
 
-        articleService.update(1L, "��정", "수정", null, false, null)
+        articleService.update(1L, "수정", "수정", null, false, null)
 
         articleService.findById(1L)
         verify(articleReader, times(1)).findById(1L) // 캐시 히트
@@ -160,7 +160,7 @@ class ArticleServiceTest {
         whenever(articleWriter.save(any<Article>())).thenAnswer { it.arguments[0] }
 
         // 캐시에 넣기
-        cacheManager.getCache("articles")?.put(1L, article)
+        cacheManager.getCache("articles")?.put(1L, CachedArticle.from(article))
 
         articleService.update(1L, "제목", "내용", null, true, null)
 
