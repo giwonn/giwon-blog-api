@@ -29,8 +29,8 @@ class ArticleStatsAggregatorTest {
     fun `aggregateDaily - 어제 하루치 PageView를 집계해서 DailyArticleStats에 저장한다`() {
         val yesterday = LocalDate.now().minusDays(1)
         whenever(analyticsReader.findTopPages(any(), any())).thenReturn(listOf(
-            PageViewCount("/articles/1", 100L),
-            PageViewCount("/articles/2", 50L),
+            PageViewCount(1L, "첫 번째 글", 100L),
+            PageViewCount(2L, "두 번째 글", 50L),
         ))
 
         aggregator.aggregateDaily()
@@ -39,20 +39,6 @@ class ArticleStatsAggregatorTest {
             stats.size == 2 &&
                 stats[0].articleId == 1L && stats[0].viewCount == 100L && stats[0].date == yesterday &&
                 stats[1].articleId == 2L && stats[1].viewCount == 50L
-        })
-    }
-
-    @Test
-    fun `aggregateDaily - articles 경로가 아닌 PageView는 무시한다`() {
-        whenever(analyticsReader.findTopPages(any(), any())).thenReturn(listOf(
-            PageViewCount("/articles/1", 100L),
-            PageViewCount("/about", 200L),
-        ))
-
-        aggregator.aggregateDaily()
-
-        verify(analyticsWriter).saveDailyArticleStats(argThat<List<DailyArticleStats>> { stats ->
-            stats.size == 1 && stats[0].articleId == 1L
         })
     }
 

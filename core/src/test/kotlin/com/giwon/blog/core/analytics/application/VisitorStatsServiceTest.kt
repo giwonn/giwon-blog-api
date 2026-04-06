@@ -37,7 +37,7 @@ class VisitorStatsServiceTest {
         val result = visitorStatsService.getVisitorSummary()
 
         assertEquals(50L, result.today)
-        assertEquals(1050L, result.total) // DB 1000 + 오늘 Redis 50
+        assertEquals(1050L, result.total)
     }
 
     @Test
@@ -49,11 +49,10 @@ class VisitorStatsServiceTest {
         val result = visitorStatsService.getVisitorSummary()
 
         assertEquals(30L, result.yesterday)
-        verify(analyticsReader, never()).getVisitorCountByDate(yesterday)
     }
 
     @Test
-    fun `어제 방문자 - Redis에 없으면 DB 폴백`() {
+    fun `어제 방문자 - Redis 0이면 daily_visitor_stats 폴백`() {
         whenever(visitorCounter.getVisitorCount(today)).thenReturn(10L)
         whenever(visitorCounter.getVisitorCount(yesterday)).thenReturn(0L)
         whenever(analyticsReader.getTotalVisitorCount()).thenReturn(500L)
@@ -65,10 +64,33 @@ class VisitorStatsServiceTest {
     }
 
     @Test
-    fun `데이터가 없으면 모두 0을 반환한다`() {
+    fun `Redis와 daily_visitor_stats 모두 0이면 page_views에서 직접 카운트`() {
+        whenever(visitorCounter.getVisitorCount(today)).thenReturn(0L)
+        whenever(visitorCounter.getVisitorCount(yesterday)).thenReturn(0L)
+        whenever(analyticsReader.getTotalVisitorCount()).thenReturn(100L)
+        whenever(analyticsReader.getVisitorCountByDate(any())).thenReturn(VisitorCount(0L))
+
+        val todayFrom = today.atStartOfDay()
+        val todayTo = today.atTime(23, 59, 59)
+        whenever(analyticsReader.countDistinctSessions(todayFrom, todayTo)).thenReturn(5L)
+
+        val yesterdayFrom = yesterday.atStartOfDay()
+        val yesterdayTo = yesterday.atTime(23, 59, 59)
+        whenever(analyticsReader.countDistinctSessions(yesterdayFrom, yesterdayTo)).thenReturn(3L)
+
+        val result = visitorStatsService.getVisitorSummary()
+
+        assertEquals(5L, result.today)
+        assertEquals(3L, result.yesterday)
+        assertEquals(105L, result.total)
+    }
+
+    @Test
+    fun `데이터가 전혀 없으면 모두 0을 반환한다`() {
         whenever(visitorCounter.getVisitorCount(any())).thenReturn(0L)
         whenever(analyticsReader.getTotalVisitorCount()).thenReturn(0L)
-        whenever(analyticsReader.getVisitorCountByDate(yesterday)).thenReturn(VisitorCount(0L))
+        whenever(analyticsReader.getVisitorCountByDate(any())).thenReturn(VisitorCount(0L))
+        whenever(analyticsReader.countDistinctSessions(any(), any())).thenReturn(0L)
 
         val result = visitorStatsService.getVisitorSummary()
 
