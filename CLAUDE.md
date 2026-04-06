@@ -9,7 +9,7 @@
 - Gradle (Kotlin DSL)
 - PostgreSQL 17
 - QueryDSL 5.1.0
-- Caffeine Cache
+- Redis 7
 - Docker + Jenkins CI/CD
 
 ## 모듈 구조
@@ -57,7 +57,7 @@ article/
     └── JpaArticleWriter.kt       # ArticleWriter 구현
 ```
 
-**캐시 전략 (Caffeine):**
+**캐시 전략 (Redis):**
 - 읽기: Look-aside (캐시 확인 → miss면 DB → 캐시 저장)
 - 작성: Write-Through (DB 저장 + 캐시 저장) - 최신글이 맨 위에 뜨니까
 - 수정: Write-Around (DB만 업데이트 + 캐시 무효화)
@@ -180,7 +180,7 @@ image/
 
 ### 캐시
 - CacheManager(Spring 추상화) 사용, 구현체는 CacheConfig에서 교체
-- 현재: Caffeine (로컬 JVM), 나중에 Redis로 교체 시 CacheConfig만 변경
+- 현재: Redis (api-blog, api-admin 공유 캐시)
 
 ## 명령어
 
@@ -195,7 +195,7 @@ image/
 
 ```bash
 # 로컬 개발 (override 자동 적용 → 포트 열림)
-docker compose up -d postgres
+docker compose up -d postgres redis
 ./gradlew :api-blog:bootRun
 
 # 배포 (override 무시 → 포트 안 열림, 내부 통신만)
