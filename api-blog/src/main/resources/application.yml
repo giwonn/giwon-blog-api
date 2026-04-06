@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: giwon-blog-api
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   datasource:
     url: jdbc:postgresql://localhost:5432/giwon_blog
     username: giwon
