@@ -23,7 +23,7 @@ x-api-blog: &api-blog-common
     - postgres
     - redis
   healthcheck:
-    test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/articles"]
+    test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
     interval: 10s
     timeout: 5s
     retries: 3
@@ -51,7 +51,7 @@ x-api-admin: &api-admin-common
     - postgres
     - redis
   healthcheck:
-    test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/admin/articles"]
+    test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/admin/health"]
     interval: 10s
     timeout: 5s
     retries: 3
