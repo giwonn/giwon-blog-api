@@ -3,14 +3,17 @@ package com.giwon.blog.core.analytics.application
 import com.giwon.blog.core.analytics.domain.AnalyticsWriter
 import com.giwon.blog.core.analytics.domain.GeoLocationResolver
 import com.giwon.blog.core.analytics.domain.PageView
+import com.giwon.blog.core.analytics.domain.VisitorCounter
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
 
 @Service
 class AnalyticsCollectionService(
     private val analyticsWriter: AnalyticsWriter,
     private val geoLocationResolver: GeoLocationResolver,
+    private val visitorCounter: VisitorCounter,
 ) {
 
     @Async
@@ -39,6 +42,7 @@ class AnalyticsCollectionService(
 
         if (sessionId != null) {
             analyticsWriter.upsertSession(sessionId, ipAddress, userAgent)
+            visitorCounter.addVisitor(LocalDate.now(), sessionId)
         }
     }
 }
