@@ -6,6 +6,8 @@ import com.giwon.blog.core.analytics.domain.DailyArticleStats
 import com.giwon.blog.core.analytics.domain.PageView
 import com.giwon.blog.core.analytics.infrastructure.persistence.DailyArticleStatsJpaRepository
 import com.giwon.blog.core.analytics.infrastructure.persistence.PageViewJpaRepository
+import com.giwon.blog.core.article.domain.Article
+import com.giwon.blog.core.article.infrastructure.persistence.ArticleJpaRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -28,22 +30,30 @@ class AnalyticsReaderIntegrationTest {
     @Autowired
     lateinit var dailyArticleStatsJpaRepository: DailyArticleStatsJpaRepository
 
+    @Autowired
+    lateinit var articleJpaRepository: ArticleJpaRepository
+
     @BeforeEach
     fun setUp() {
         pageViewJpaRepository.deleteAll()
         dailyArticleStatsJpaRepository.deleteAll()
+        articleJpaRepository.deleteAll()
     }
 
     @Test
-    fun `findTopPages - 경로별 조회수를 내림차순으로 반환한다`() {
+    fun `findTopPages - 글별 조회수를 제목과 함께 내림차순으로 반환한다`() {
+        val article1 = articleJpaRepository.save(Article(title = "첫 번째 글", content = "내용1"))
+        val article2 = articleJpaRepository.save(Article(title = "두 번째 글", content = "내용2"))
+
         val now = LocalDateTime.now()
-        repeat(3) { pageViewJpaRepository.save(PageView(path = "/articles/1", ipAddress = "1.1.1.1", createdAt = now)) }
-        repeat(1) { pageViewJpaRepository.save(PageView(path = "/articles/2", ipAddress = "1.1.1.1", createdAt = now)) }
+        repeat(3) { pageViewJpaRepository.save(PageView(path = "/articles/${article1.id}", ipAddress = "1.1.1.1", createdAt = now)) }
+        repeat(1) { pageViewJpaRepository.save(PageView(path = "/articles/${article2.id}", ipAddress = "1.1.1.1", createdAt = now)) }
 
         val result = analyticsReader.findTopPages(now.minusHours(1), now.plusHours(1))
 
         assertEquals(2, result.size)
-        assertEquals("/articles/1", result[0].path)
+        assertEquals(article1.id, result[0].articleId)
+        assertEquals("첫 번째 글", result[0].title)
         assertEquals(3L, result[0].viewCount)
     }
 
