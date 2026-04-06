@@ -45,7 +45,7 @@ class ArticleControllerIntegrationTest {
             status { isOk() }
             jsonPath("$.data.content.length()") { value(2) }
             jsonPath("$.data.content[0].title") { exists() }
-            jsonPath("$.data.totalElements") { value(2) }
+            jsonPath("$.data.page.totalElements") { value(2) }
         }
     }
 
@@ -76,7 +76,7 @@ class ArticleControllerIntegrationTest {
             .andExpect {
                 status { isOk() }
                 jsonPath("$.data.content") { isEmpty() }
-                jsonPath("$.data.totalElements") { value(0) }
+                jsonPath("$.data.page.totalElements") { value(0) }
             }
     }
 }

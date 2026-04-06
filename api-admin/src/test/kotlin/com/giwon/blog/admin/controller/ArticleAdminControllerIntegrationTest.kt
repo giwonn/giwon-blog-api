@@ -103,7 +103,7 @@ class ArticleAdminControllerIntegrationTest {
             .andExpect {
                 status { isOk() }
                 jsonPath("$.data.content.length()") { value(2) }
-                jsonPath("$.data.totalElements") { value(2) }
+                jsonPath("$.data.page.totalElements") { value(2) }
             }
     }
 
