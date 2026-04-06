@@ -7,6 +7,7 @@ import com.giwon.blog.core.analytics.domain.QPageView.pageView
 import com.giwon.blog.core.analytics.domain.QArticleStats.articleStats
 import com.giwon.blog.core.article.domain.QArticle.article
 import com.querydsl.core.types.Projections
+import com.querydsl.core.types.dsl.CaseBuilder
 import com.querydsl.core.types.dsl.Expressions
 import com.querydsl.jpa.impl.JPAQueryFactory
 import org.springframework.stereotype.Component
@@ -44,19 +45,24 @@ class QueryDslAnalyticsReader(
     }
 
     override fun findTopReferrers(from: LocalDateTime, to: LocalDateTime): List<ReferrerCount> {
+        val directLabel = Expressions.asString("(직접 접속)")
+        val referrerOrDirect = CaseBuilder()
+            .`when`(pageView.referrer.isNull).then(directLabel)
+            .otherwise(pageView.referrer)
+
         return queryFactory
             .select(Projections.constructor(
                 ReferrerCount::class.java,
-                pageView.referrer,
+                referrerOrDirect,
                 pageView.count(),
             ))
             .from(pageView)
             .where(
                 pageView.createdAt.between(from, to),
-                pageView.referrer.isNotNull,
-                pageView.referrer.notLike("%blog.giwon.dev%"),
+                pageView.referrer.isNull
+                    .or(pageView.referrer.notLike("%blog.giwon.dev%")),
             )
-            .groupBy(pageView.referrer)
+            .groupBy(referrerOrDirect)
             .orderBy(pageView.count().desc())
             .fetch()
     }
