@@ -3,6 +3,17 @@ set -e
 
 COMPOSE_FILE="docker-compose.yml"
 NGINX_CONF="nginx/default.conf"
+LOCK_FILE="/tmp/giwon-blog-deploy.lock"
+
+# 배포 락 획득
+exec 200>"$LOCK_FILE"
+if ! flock -n 200; then
+    echo "Another deployment is already running. Waiting..."
+    flock 200
+fi
+
+# 종료 시 락 해제
+trap 'flock -u 200' EXIT
 
 # 현재 활성 색상 확인
 if docker ps --format '{{.Names}}' | grep -q "api-blog-blue"; then
