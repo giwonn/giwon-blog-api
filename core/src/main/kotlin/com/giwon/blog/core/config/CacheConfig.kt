@@ -26,6 +26,7 @@ class CacheConfig {
         val objectMapper = ObjectMapper()
             .registerModule(kotlinModule())
             .registerModule(JavaTimeModule())
+            .registerModule(PageJacksonModule())
             .activateDefaultTyping(
                 LaissezFaireSubTypeValidator.instance,
                 ObjectMapper.DefaultTyping.NON_FINAL,
