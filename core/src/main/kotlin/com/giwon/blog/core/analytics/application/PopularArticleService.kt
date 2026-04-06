@@ -1,26 +1,28 @@
 package com.giwon.blog.core.analytics.application
 
 import com.giwon.blog.core.analytics.domain.AnalyticsReader
-import com.giwon.blog.core.article.domain.ArticleReader
 import org.springframework.stereotype.Service
+import java.time.LocalDateTime
+import java.time.LocalTime
 
 @Service
 class PopularArticleService(
     private val analyticsReader: AnalyticsReader,
-    private val articleReader: ArticleReader,
 ) {
 
     fun getPopularArticles(limit: Int = 5): List<PopularArticle> {
-        val stats = analyticsReader.findTopArticleStats(limit)
+        val now = LocalDateTime.now()
+        val from = now.minusDays(30).with(LocalTime.MIN)
 
-        return stats.mapNotNull { stat ->
-            val article = articleReader.findById(stat.articleId) ?: return@mapNotNull null
-            PopularArticle(
-                id = article.id,
-                title = article.title,
-                viewCount = stat.viewCount,
-            )
-        }
+        return analyticsReader.findTopPages(from, now)
+            .take(limit)
+            .map { page ->
+                PopularArticle(
+                    id = page.articleId,
+                    title = page.title,
+                    viewCount = page.viewCount,
+                )
+            }
     }
 }
 

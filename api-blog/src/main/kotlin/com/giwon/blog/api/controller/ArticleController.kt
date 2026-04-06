@@ -5,6 +5,7 @@ import com.giwon.blog.core.article.application.ArticleService
 import com.giwon.blog.core.article.domain.Article
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
 import org.springframework.web.bind.annotation.*
 
@@ -15,7 +16,7 @@ class ArticleController(
 ) {
 
     @GetMapping
-    fun findAll(@PageableDefault(size = 10) pageable: Pageable): ApiResponse<Page<Article>> {
+    fun findAll(@PageableDefault(size = 10, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable): ApiResponse<Page<Article>> {
         return ApiResponse(articleService.findPublishedAndVisible(pageable))
     }
 
