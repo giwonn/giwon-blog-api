@@ -15,7 +15,7 @@ interface AnalyticsReader {
     fun findVisitorLocations(from: LocalDateTime, to: LocalDateTime): List<VisitorLocation>
 }
 
-data class PageViewCount(val path: String, val viewCount: Long)
+data class PageViewCount(val articleId: Long, val title: String, val viewCount: Long)
 data class ReferrerCount(val referrer: String, val viewCount: Long)
 data class DailyPageViewCount(val date: String, val viewCount: Long)
 data class ArticleViewCount(val articleId: Long, val viewCount: Long)

@@ -36,9 +36,8 @@ class ArticleStatsAggregator(
         val to = date.atTime(23, 59, 59)
         val topPages = analyticsReader.findTopPages(from, to)
 
-        val dailyStats = topPages.mapNotNull { pv ->
-            val articleId = extractArticleId(pv.path) ?: return@mapNotNull null
-            DailyArticleStats(date = date, articleId = articleId, viewCount = pv.viewCount)
+        val dailyStats = topPages.map { pv ->
+            DailyArticleStats(date = date, articleId = pv.articleId, viewCount = pv.viewCount)
         }
 
         analyticsWriter.saveDailyArticleStats(dailyStats)
@@ -53,10 +52,5 @@ class ArticleStatsAggregator(
         }
 
         analyticsWriter.replaceArticleStats(stats)
-    }
-
-    private fun extractArticleId(path: String): Long? {
-        val match = Regex("""/articles/(\d+)""").find(path)
-        return match?.groupValues?.get(1)?.toLongOrNull()
     }
 }

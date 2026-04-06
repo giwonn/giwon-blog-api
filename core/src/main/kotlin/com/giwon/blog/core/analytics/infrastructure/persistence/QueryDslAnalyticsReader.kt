@@ -5,7 +5,9 @@ import com.giwon.blog.core.analytics.domain.QDailyArticleStats.dailyArticleStats
 import com.giwon.blog.core.analytics.domain.QDailyVisitorStats.dailyVisitorStats
 import com.giwon.blog.core.analytics.domain.QPageView.pageView
 import com.giwon.blog.core.analytics.domain.QArticleStats.articleStats
+import com.giwon.blog.core.article.domain.QArticle.article
 import com.querydsl.core.types.Projections
+import com.querydsl.core.types.dsl.Expressions
 import com.querydsl.jpa.impl.JPAQueryFactory
 import org.springframework.stereotype.Component
 import java.time.LocalDate
@@ -17,15 +19,23 @@ class QueryDslAnalyticsReader(
 ) : AnalyticsReader {
 
     override fun findTopPages(from: LocalDateTime, to: LocalDateTime): List<PageViewCount> {
+        val articleIdExpr = Expressions.numberTemplate(
+            Long::class.java,
+            "CAST(SUBSTRING({0}, 11) AS bigint)",
+            pageView.path,
+        )
+
         return queryFactory
             .select(Projections.constructor(
                 PageViewCount::class.java,
-                pageView.path,
+                article.id,
+                article.title,
                 pageView.count(),
             ))
             .from(pageView)
+            .join(article).on(article.id.eq(articleIdExpr))
             .where(pageView.createdAt.between(from, to))
-            .groupBy(pageView.path)
+            .groupBy(article.id, article.title)
             .orderBy(pageView.count().desc())
             .fetch()
     }
