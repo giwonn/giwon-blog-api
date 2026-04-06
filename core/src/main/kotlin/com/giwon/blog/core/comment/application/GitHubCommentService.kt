@@ -2,6 +2,7 @@ package com.giwon.blog.core.comment.application
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import java.io.Serializable
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
@@ -50,4 +51,8 @@ data class RecentComment(
     val avatarUrl: String,
     val url: String,
     val createdAt: String,
-)
+) : Serializable {
+    companion object {
+        private const val serialVersionUID = 1L
+    }
+}

@@ -1,6 +1,7 @@
 package com.giwon.blog.core.article.domain
 
 import jakarta.persistence.*
+import java.io.Serializable
 import java.time.LocalDateTime
 
 @Entity
@@ -29,7 +30,12 @@ class Article(
 
     @Column(nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now(),
-) {
+) : Serializable {
+
+    companion object {
+        private const val serialVersionUID = 1L
+    }
+
     @Suppress("SENSELESS_COMPARISON")
     val isPublished: Boolean get() = publishedAt != null && !publishedAt.isAfter(LocalDateTime.now())
     @Suppress("SENSELESS_COMPARISON")
