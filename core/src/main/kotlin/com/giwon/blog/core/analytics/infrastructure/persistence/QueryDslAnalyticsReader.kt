@@ -21,7 +21,7 @@ class QueryDslAnalyticsReader(
     override fun findTopPages(from: LocalDateTime, to: LocalDateTime): List<PageViewCount> {
         val articleIdExpr = Expressions.numberTemplate(
             Long::class.java,
-            "CAST(SUBSTRING({0}, 11) AS bigint)",
+            "CAST(SUBSTRING({0}, 11) AS long)",
             pageView.path,
         )
 
