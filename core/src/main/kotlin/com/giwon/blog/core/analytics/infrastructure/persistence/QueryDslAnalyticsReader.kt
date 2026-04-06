@@ -51,6 +51,7 @@ class QueryDslAnalyticsReader(
             .where(
                 pageView.createdAt.between(from, to),
                 pageView.referrer.isNotNull,
+                pageView.referrer.notLike("%blog.giwon.dev%"),
             )
             .groupBy(pageView.referrer)
             .orderBy(pageView.count().desc())
