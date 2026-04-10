@@ -145,6 +145,7 @@ class QueryDslAnalyticsReader(
                 pageView.country,
                 pageView.city,
                 pageView.count(),
+                pageView.createdAt.max(),
             ))
             .from(pageView)
             .where(
