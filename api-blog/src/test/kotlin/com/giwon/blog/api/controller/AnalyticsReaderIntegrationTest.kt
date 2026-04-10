@@ -70,6 +70,42 @@ class AnalyticsReaderIntegrationTest {
     }
 
     @Test
+    fun `findArticleAccessHistory - 특정 글의 접속 이력을 시간 역순으로 반환한다`() {
+        val article = articleJpaRepository.save(Article(title = "테스트 글", content = "내용"))
+
+        val now = LocalDateTime.now()
+        pageViewJpaRepository.save(PageView(path = "/articles/${article.id}", ipAddress = "1.1.1.1", country = "KR", city = "Seoul", createdAt = now.minusHours(2)))
+        pageViewJpaRepository.save(PageView(path = "/articles/${article.id}", ipAddress = "2.2.2.2", country = "US", city = "New York", createdAt = now.minusHours(1)))
+        pageViewJpaRepository.save(PageView(path = "/articles/${article.id}", ipAddress = "3.3.3.3", country = "JP", city = "Tokyo", createdAt = now))
+        // 다른 글의 접속은 포함되지 않아야 한다
+        pageViewJpaRepository.save(PageView(path = "/articles/99999", ipAddress = "4.4.4.4", createdAt = now))
+
+        val result = analyticsReader.findArticleAccessHistory(article.id!!, now.minusHours(3), now.plusHours(1))
+
+        assertEquals(3, result.size)
+        // 최신순
+        assertEquals("3.3.3.3", result[0].ipAddress)
+        assertEquals("Tokyo", result[0].city)
+        assertEquals("JP", result[0].country)
+        assertEquals("2.2.2.2", result[1].ipAddress)
+        assertEquals("1.1.1.1", result[2].ipAddress)
+    }
+
+    @Test
+    fun `findArticleAccessHistory - 기간 외 접속은 포함하지 않는다`() {
+        val article = articleJpaRepository.save(Article(title = "테스트 글2", content = "내용"))
+
+        val now = LocalDateTime.now()
+        pageViewJpaRepository.save(PageView(path = "/articles/${article.id}", ipAddress = "1.1.1.1", createdAt = now.minusDays(10)))
+        pageViewJpaRepository.save(PageView(path = "/articles/${article.id}", ipAddress = "2.2.2.2", createdAt = now))
+
+        val result = analyticsReader.findArticleAccessHistory(article.id!!, now.minusHours(1), now.plusHours(1))
+
+        assertEquals(1, result.size)
+        assertEquals("2.2.2.2", result[0].ipAddress)
+    }
+
+    @Test
     fun `sumViewCountByArticleIdSince - 일일 집계를 합산해서 반환한다`() {
         val today = LocalDate.now()
         dailyArticleStatsJpaRepository.save(DailyArticleStats(date = today, articleId = 1L, viewCount = 100L))

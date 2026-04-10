@@ -175,4 +175,22 @@ class QueryDslAnalyticsReader(
             .orderBy(pageView.createdAt.desc())
             .fetch()
     }
+
+    override fun findArticleAccessHistory(articleId: Long, from: LocalDateTime, to: LocalDateTime): List<ArticleAccessHistory> {
+        return queryFactory
+            .select(Projections.constructor(
+                ArticleAccessHistory::class.java,
+                pageView.ipAddress,
+                pageView.country,
+                pageView.city,
+                pageView.createdAt,
+            ))
+            .from(pageView)
+            .where(
+                pageView.path.eq("/articles/$articleId"),
+                pageView.createdAt.between(from, to),
+            )
+            .orderBy(pageView.createdAt.desc())
+            .fetch()
+    }
 }

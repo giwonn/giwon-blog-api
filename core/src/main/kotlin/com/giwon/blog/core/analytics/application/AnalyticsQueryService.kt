@@ -34,6 +34,10 @@ class AnalyticsQueryService(
     fun getIpAccessHistory(ipAddress: String, from: LocalDateTime, to: LocalDateTime): List<IpAccessHistory> {
         return analyticsReader.findIpAccessHistory(ipAddress, from, to)
     }
+
+    fun getArticleAccessHistory(articleId: Long, from: LocalDateTime, to: LocalDateTime): List<ArticleAccessHistory> {
+        return analyticsReader.findArticleAccessHistory(articleId, from, to)
+    }
 }
 
 data class AnalyticsOverview(val totalPageViews: Long, val uniqueVisitors: Long)

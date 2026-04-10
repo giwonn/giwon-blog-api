@@ -14,6 +14,7 @@ interface AnalyticsReader {
     fun getVisitorCountByDate(date: LocalDate): VisitorCount
     fun findVisitorLocations(from: LocalDateTime, to: LocalDateTime): List<VisitorLocation>
     fun findIpAccessHistory(ipAddress: String, from: LocalDateTime, to: LocalDateTime): List<IpAccessHistory>
+    fun findArticleAccessHistory(articleId: Long, from: LocalDateTime, to: LocalDateTime): List<ArticleAccessHistory>
 }
 
 data class PageViewCount(val articleId: Long, val title: String, val viewCount: Long)
@@ -24,3 +25,4 @@ data class ArticleStatsRow(val articleId: Long, val viewCount: Long)
 data class VisitorCount(val count: Long)
 data class VisitorLocation(val ipAddress: String, val latitude: Double, val longitude: Double, val country: String?, val city: String?, val visitCount: Long)
 data class IpAccessHistory(val path: String, val ipAddress: String, val country: String?, val city: String?, val createdAt: LocalDateTime)
+data class ArticleAccessHistory(val ipAddress: String, val country: String?, val city: String?, val createdAt: LocalDateTime)

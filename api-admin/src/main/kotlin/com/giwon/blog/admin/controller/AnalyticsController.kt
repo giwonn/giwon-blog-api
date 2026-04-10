@@ -4,6 +4,7 @@ import com.giwon.blog.common.dto.ApiResponse
 import com.giwon.blog.core.analytics.application.AnalyticsOverview
 import com.giwon.blog.core.analytics.application.AnalyticsQueryService
 import com.giwon.blog.core.analytics.domain.DailyPageViewCount
+import com.giwon.blog.core.analytics.domain.ArticleAccessHistory
 import com.giwon.blog.core.analytics.domain.IpAccessHistory
 import com.giwon.blog.core.analytics.domain.PageViewCount
 import com.giwon.blog.core.analytics.domain.ReferrerCount
@@ -69,5 +70,14 @@ class AnalyticsController(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
     ): ApiResponse<List<IpAccessHistory>> {
         return ApiResponse(analyticsQueryService.getIpAccessHistory(ip, from.atStartOfDay(), to.atTime(LocalTime.MAX)))
+    }
+
+    @GetMapping("/article-access-history")
+    fun getArticleAccessHistory(
+        @RequestParam articleId: Long,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) from: LocalDate,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
+    ): ApiResponse<List<ArticleAccessHistory>> {
+        return ApiResponse(analyticsQueryService.getArticleAccessHistory(articleId, from.atStartOfDay(), to.atTime(LocalTime.MAX)))
     }
 }
