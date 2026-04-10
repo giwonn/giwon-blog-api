@@ -156,4 +156,23 @@ class QueryDslAnalyticsReader(
             .orderBy(pageView.count().desc())
             .fetch()
     }
+
+    override fun findIpAccessHistory(ipAddress: String, from: LocalDateTime, to: LocalDateTime): List<IpAccessHistory> {
+        return queryFactory
+            .select(Projections.constructor(
+                IpAccessHistory::class.java,
+                pageView.path,
+                pageView.ipAddress,
+                pageView.country,
+                pageView.city,
+                pageView.createdAt,
+            ))
+            .from(pageView)
+            .where(
+                pageView.ipAddress.eq(ipAddress),
+                pageView.createdAt.between(from, to),
+            )
+            .orderBy(pageView.createdAt.desc())
+            .fetch()
+    }
 }

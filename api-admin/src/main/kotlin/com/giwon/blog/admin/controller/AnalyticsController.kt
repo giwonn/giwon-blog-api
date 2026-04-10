@@ -4,6 +4,7 @@ import com.giwon.blog.common.dto.ApiResponse
 import com.giwon.blog.core.analytics.application.AnalyticsOverview
 import com.giwon.blog.core.analytics.application.AnalyticsQueryService
 import com.giwon.blog.core.analytics.domain.DailyPageViewCount
+import com.giwon.blog.core.analytics.domain.IpAccessHistory
 import com.giwon.blog.core.analytics.domain.PageViewCount
 import com.giwon.blog.core.analytics.domain.ReferrerCount
 import com.giwon.blog.core.analytics.domain.VisitorLocation
@@ -59,5 +60,14 @@ class AnalyticsController(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
     ): ApiResponse<List<VisitorLocation>> {
         return ApiResponse(analyticsQueryService.getVisitorLocations(from.atStartOfDay(), to.atTime(LocalTime.MAX)))
+    }
+
+    @GetMapping("/ip-access-history")
+    fun getIpAccessHistory(
+        @RequestParam ip: String,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) from: LocalDate,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
+    ): ApiResponse<List<IpAccessHistory>> {
+        return ApiResponse(analyticsQueryService.getIpAccessHistory(ip, from.atStartOfDay(), to.atTime(LocalTime.MAX)))
     }
 }
