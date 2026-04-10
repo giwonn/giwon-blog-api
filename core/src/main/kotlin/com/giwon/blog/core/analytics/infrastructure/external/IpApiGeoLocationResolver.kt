@@ -22,7 +22,7 @@ class IpApiGeoLocationResolver : GeoLocationResolver {
 
         return try {
             val response = restClient.get()
-                .uri("/json/$ipAddress?fields=status,lat,lon,country,city")
+                .uri("/json/$ipAddress?fields=status,lat,lon,country,city&lang=ko")
                 .retrieve()
                 .body(String::class.java) ?: return null
 
