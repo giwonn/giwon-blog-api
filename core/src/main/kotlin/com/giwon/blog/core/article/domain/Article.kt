@@ -17,13 +17,26 @@ class Article(
     @Column(nullable = false, columnDefinition = "TEXT")
     var content: String,
 
-    @Column(nullable = false)
-    var publishedAt: LocalDateTime = LocalDateTime.now(),
+    @Column(nullable = false, unique = true)
+    var slug: String,
 
-    @Column(nullable = false, columnDefinition = "boolean default false")
-    var hidden: Boolean = false,
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    var status: ArticleStatus = ArticleStatus.DRAFT,
+
+    var publishedAt: LocalDateTime? = null,
 
     var password: String? = null,
+
+    @Column(name = "series_id")
+    var seriesId: Long? = null,
+
+    var orderInSeries: Int? = null,
+
+    @Column(name = "book_id")
+    var bookId: Long? = null,
+
+    var orderInBook: Int? = null,
 
     @Column(nullable = false, updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
@@ -36,10 +49,6 @@ class Article(
         private const val serialVersionUID = 1L
     }
 
-    @Suppress("SENSELESS_COMPARISON")
-    val isPublished: Boolean get() = publishedAt != null && !publishedAt.isAfter(LocalDateTime.now())
-    @Suppress("SENSELESS_COMPARISON")
-    val isScheduled: Boolean get() = publishedAt != null && publishedAt.isAfter(LocalDateTime.now())
-    val isPasswordProtected: Boolean get() = password != null
-    val isVisibleOnBlog: Boolean get() = isPublished && !hidden
+    val isVisibleOnBlog: Boolean get() = status == ArticleStatus.PUBLIC || status == ArticleStatus.LOCKED
+    val isPasswordProtected: Boolean get() = status == ArticleStatus.LOCKED && password != null
 }

@@ -25,25 +25,23 @@ class ArticleService(
 
     // --- 블로그용 조회 ---
 
-    fun findPublishedAndVisible(pageable: Pageable): Page<Article> {
+    fun findVisibleOnBlog(pageable: Pageable): Page<Article> {
         val cache = cacheManager.getCache(CACHE_ARTICLE_LIST)
         val key = pageable.toString()
 
         val cached = cache?.get(key, CachedArticlePage::class.java)
         if (cached != null) return cached.toPage()
 
-        val result = articleReader.findPublishedAndVisible(LocalDateTime.now(), pageable)
+        val result = articleReader.findVisibleOnBlog(pageable)
         cache?.put(key, CachedArticlePage.from(result))
         return result
     }
 
-    fun findByIdForBlog(id: Long, password: String?): Article {
-        val article = findById(id)
+    fun findBySlugForBlog(slug: String, password: String?): Article {
+        val article = articleReader.findBySlug(slug)
+            ?: throw BusinessException(ErrorCode.ARTICLE_NOT_FOUND)
 
-        if (article.hidden) {
-            throw BusinessException(ErrorCode.ARTICLE_NOT_FOUND)
-        }
-        if (!article.isPublished) {
+        if (!article.isVisibleOnBlog) {
             throw BusinessException(ErrorCode.ARTICLE_NOT_FOUND)
         }
         if (article.isPasswordProtected) {
@@ -85,16 +83,35 @@ class ArticleService(
     fun create(
         title: String,
         content: String,
-        publishedAt: LocalDateTime = LocalDateTime.now(),
-        hidden: Boolean = false,
+        slug: String,
+        status: ArticleStatus,
         password: String? = null,
+        seriesId: Long? = null,
+        orderInSeries: Int? = null,
+        bookId: Long? = null,
+        orderInBook: Int? = null,
     ): Article {
+        if (articleReader.existsBySlug(slug)) {
+            throw BusinessException(ErrorCode.ARTICLE_SLUG_DUPLICATE)
+        }
+
+        val publishedAt = if (status == ArticleStatus.PUBLIC || status == ArticleStatus.LOCKED) {
+            LocalDateTime.now()
+        } else {
+            null
+        }
+
         val article = Article(
             title = title,
             content = content,
+            slug = slug,
+            status = status,
             publishedAt = publishedAt,
-            hidden = hidden,
             password = password,
+            seriesId = seriesId,
+            orderInSeries = orderInSeries,
+            bookId = bookId,
+            orderInBook = orderInBook,
         )
         val saved = articleWriter.save(article)
 
@@ -117,22 +134,46 @@ class ArticleService(
         id: Long,
         title: String,
         content: String,
-        publishedAt: LocalDateTime? = null,
-        hidden: Boolean = false,
+        slug: String,
+        status: ArticleStatus,
         password: String? = null,
+        seriesId: Long? = null,
+        orderInSeries: Int? = null,
+        bookId: Long? = null,
+        orderInBook: Int? = null,
     ): Article {
         val article = articleReader.findById(id)
             ?: throw BusinessException(ErrorCode.ARTICLE_NOT_FOUND)
 
+        // slug 변경 시 중복 체크
+        if (slug != article.slug) {
+            if (articleReader.existsBySlug(slug)) {
+                throw BusinessException(ErrorCode.ARTICLE_SLUG_DUPLICATE)
+            }
+        }
+
         val processedContent = articleDomainService.processNewImages(content, id)
         articleDomainService.cleanupDeletedImages(article.content, processedContent)
 
+        // DRAFT → PUBLIC/LOCKED 전환 시 publishedAt 설정
+        val wasNotVisible = !article.isVisibleOnBlog
+        val willBeVisible = status == ArticleStatus.PUBLIC || status == ArticleStatus.LOCKED
+
         article.title = title
         article.content = processedContent
-        if (publishedAt != null) article.publishedAt = publishedAt
-        article.hidden = hidden
+        article.slug = slug
+        article.status = status
         article.password = password
+        article.seriesId = seriesId
+        article.orderInSeries = orderInSeries
+        article.bookId = bookId
+        article.orderInBook = orderInBook
         article.updatedAt = LocalDateTime.now()
+
+        if (wasNotVisible && willBeVisible && article.publishedAt == null) {
+            article.publishedAt = LocalDateTime.now()
+        }
+
         val saved = articleWriter.save(article)
 
         if (saved.isVisibleOnBlog) {

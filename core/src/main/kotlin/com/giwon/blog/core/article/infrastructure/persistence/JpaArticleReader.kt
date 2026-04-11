@@ -2,10 +2,10 @@ package com.giwon.blog.core.article.infrastructure.persistence
 
 import com.giwon.blog.core.article.domain.Article
 import com.giwon.blog.core.article.domain.ArticleReader
+import com.giwon.blog.core.article.domain.ArticleStatus
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Component
-import java.time.LocalDateTime
 
 @Component
 class JpaArticleReader(
@@ -16,11 +16,22 @@ class JpaArticleReader(
         return articleJpaRepository.findById(id).orElse(null)
     }
 
+    override fun findBySlug(slug: String): Article? {
+        return articleJpaRepository.findBySlug(slug)
+    }
+
+    override fun existsBySlug(slug: String): Boolean {
+        return articleJpaRepository.existsBySlug(slug)
+    }
+
     override fun findAll(pageable: Pageable): Page<Article> {
         return articleJpaRepository.findAll(pageable)
     }
 
-    override fun findPublishedAndVisible(now: LocalDateTime, pageable: Pageable): Page<Article> {
-        return articleJpaRepository.findAllByPublishedAtBeforeAndHiddenFalse(now, pageable)
+    override fun findVisibleOnBlog(pageable: Pageable): Page<Article> {
+        return articleJpaRepository.findAllByStatusIn(
+            listOf(ArticleStatus.PUBLIC, ArticleStatus.LOCKED),
+            pageable,
+        )
     }
 }

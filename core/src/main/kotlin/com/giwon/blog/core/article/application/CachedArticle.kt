@@ -1,15 +1,21 @@
 package com.giwon.blog.core.article.application
 
 import com.giwon.blog.core.article.domain.Article
+import com.giwon.blog.core.article.domain.ArticleStatus
 import java.time.LocalDateTime
 
 data class CachedArticle(
     val id: Long,
     val title: String,
     val content: String,
-    val publishedAt: LocalDateTime,
-    val hidden: Boolean,
+    val slug: String,
+    val status: ArticleStatus,
+    val publishedAt: LocalDateTime?,
     val password: String?,
+    val seriesId: Long?,
+    val orderInSeries: Int?,
+    val bookId: Long?,
+    val orderInBook: Int?,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
 ) {
@@ -17,9 +23,14 @@ data class CachedArticle(
         id = id,
         title = title,
         content = content,
+        slug = slug,
+        status = status,
         publishedAt = publishedAt,
-        hidden = hidden,
         password = password,
+        seriesId = seriesId,
+        orderInSeries = orderInSeries,
+        bookId = bookId,
+        orderInBook = orderInBook,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )
@@ -29,9 +40,14 @@ data class CachedArticle(
             id = article.id,
             title = article.title,
             content = article.content,
+            slug = article.slug,
+            status = article.status,
             publishedAt = article.publishedAt,
-            hidden = article.hidden,
             password = article.password,
+            seriesId = article.seriesId,
+            orderInSeries = article.orderInSeries,
+            bookId = article.bookId,
+            orderInBook = article.orderInBook,
             createdAt = article.createdAt,
             updatedAt = article.updatedAt,
         )
