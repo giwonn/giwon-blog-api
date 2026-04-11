@@ -95,7 +95,7 @@ class ArticleService(
             throw BusinessException(ErrorCode.ARTICLE_SLUG_DUPLICATE)
         }
 
-        val publishedAt = if (status == ArticleStatus.PUBLIC || status == ArticleStatus.LOCKED) {
+        val publishedAt = if (status.isVisible) {
             LocalDateTime.now()
         } else {
             null
@@ -157,7 +157,7 @@ class ArticleService(
 
         // DRAFT → PUBLIC/LOCKED 전환 시 publishedAt 설정
         val wasNotVisible = !article.isVisibleOnBlog
-        val willBeVisible = status == ArticleStatus.PUBLIC || status == ArticleStatus.LOCKED
+        val willBeVisible = status.isVisible
 
         article.title = title
         article.content = processedContent

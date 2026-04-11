@@ -49,6 +49,6 @@ class Article(
         private const val serialVersionUID = 1L
     }
 
-    val isVisibleOnBlog: Boolean get() = status == ArticleStatus.PUBLIC || status == ArticleStatus.LOCKED
+    val isVisibleOnBlog: Boolean get() = status.isVisible
     val isPasswordProtected: Boolean get() = status == ArticleStatus.LOCKED && password != null
 }

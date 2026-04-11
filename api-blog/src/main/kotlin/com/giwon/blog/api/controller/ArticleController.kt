@@ -17,7 +17,7 @@ class ArticleController(
 
     @GetMapping
     fun findAll(@PageableDefault(size = 10, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable): ApiResponse<Page<Article>> {
-        return ApiResponse(articleService.findPublishedAndVisible(pageable))
+        return ApiResponse(articleService.findVisibleOnBlog(pageable))
     }
 
     @GetMapping("/{id}")
@@ -25,6 +25,6 @@ class ArticleController(
         @PathVariable id: Long,
         @RequestParam(required = false) password: String?,
     ): ApiResponse<Article> {
-        return ApiResponse(articleService.findByIdForBlog(id, password))
+        return ApiResponse(articleService.findById(id))
     }
 }

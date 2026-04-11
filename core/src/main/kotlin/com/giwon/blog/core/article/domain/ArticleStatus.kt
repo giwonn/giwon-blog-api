@@ -5,4 +5,7 @@ enum class ArticleStatus {
     PUBLIC,
     LOCKED,
     PRIVATE,
+    ;
+
+    val isVisible: Boolean get() = this == PUBLIC || this == LOCKED
 }
