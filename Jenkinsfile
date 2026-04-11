@@ -43,6 +43,15 @@ pipeline {
                         -locations=filesystem:/flyway/sql \
                         -baselineOnMigrate=true \
                         -baselineVersion=1 \
+                        repair
+                    docker run --rm --network blog-network \
+                        -v $(pwd)/core/src/main/resources/db/migration:/flyway/sql \
+                        flyway/flyway:latest \
+                        -url=jdbc:postgresql://postgres:5432/giwon_blog \
+                        -user=giwon -password=giwon1234 \
+                        -locations=filesystem:/flyway/sql \
+                        -baselineOnMigrate=true \
+                        -baselineVersion=1 \
                         migrate
                 '''
             }
