@@ -56,6 +56,10 @@ class ArticleService(
         return article
     }
 
+    fun findVisibleByFilter(filter: String, pageable: Pageable): Page<Article> {
+        return articleReader.findVisibleByFilter(filter, pageable)
+    }
+
     // --- 어드민용 조회 ---
 
     fun findAll(pageable: Pageable): Page<Article> {

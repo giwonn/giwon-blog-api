@@ -9,4 +9,9 @@ interface ArticleReader {
     fun existsBySlug(slug: String): Boolean
     fun findAll(pageable: Pageable): Page<Article>
     fun findVisibleOnBlog(pageable: Pageable): Page<Article>
+    fun findVisibleBySeriesId(seriesId: Long): List<Article>
+    fun findVisibleByBookId(bookId: Long): List<Article>
+    fun findAllBySeriesId(seriesId: Long): List<Article>
+    fun findAllByBookId(bookId: Long): List<Article>
+    fun findVisibleByFilter(filter: String, pageable: Pageable): Page<Article>
 }
