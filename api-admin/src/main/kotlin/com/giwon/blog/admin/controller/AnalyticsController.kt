@@ -16,7 +16,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.time.LocalDate
-import java.time.LocalTime
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 @RestController
 @RequestMapping("/admin/analytics")
@@ -24,52 +25,71 @@ class AnalyticsController(
     private val analyticsQueryService: AnalyticsQueryService,
 ) {
 
+    private fun toUtcRange(from: LocalDate, to: LocalDate, tz: String): Pair<LocalDateTime, LocalDateTime> {
+        val zone = ZoneId.of(tz)
+        val utcFrom = from.atStartOfDay(zone).toInstant().atZone(ZoneId.of("UTC")).toLocalDateTime()
+        val utcTo = to.plusDays(1).atStartOfDay(zone).toInstant().atZone(ZoneId.of("UTC")).toLocalDateTime()
+        return utcFrom to utcTo
+    }
+
     @GetMapping("/overview")
     fun getOverview(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) from: LocalDate,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
+        @RequestParam(defaultValue = "UTC") tz: String,
     ): ApiResponse<AnalyticsOverview> {
-        return ApiResponse(analyticsQueryService.getOverview(from.atStartOfDay(), to.atTime(LocalTime.MAX)))
+        val (utcFrom, utcTo) = toUtcRange(from, to, tz)
+        return ApiResponse(analyticsQueryService.getOverview(utcFrom, utcTo))
     }
 
     @GetMapping("/page-views")
     fun getDailyPageViews(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) from: LocalDate,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
+        @RequestParam(defaultValue = "UTC") tz: String,
     ): ApiResponse<List<DailyPageViewCount>> {
-        return ApiResponse(analyticsQueryService.getDailyPageViews(from.atStartOfDay(), to.atTime(LocalTime.MAX)))
+        val (utcFrom, utcTo) = toUtcRange(from, to, tz)
+        return ApiResponse(analyticsQueryService.getDailyPageViews(utcFrom, utcTo))
     }
 
     @GetMapping("/daily-visitors")
     fun getDailyVisitors(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) from: LocalDate,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
+        @RequestParam(defaultValue = "UTC") tz: String,
     ): ApiResponse<List<DailyVisitorCount>> {
-        return ApiResponse(analyticsQueryService.getDailyVisitors(from, to))
+        val (utcFrom, utcTo) = toUtcRange(from, to, tz)
+        return ApiResponse(analyticsQueryService.getDailyVisitors(utcFrom, utcTo, tz))
     }
 
     @GetMapping("/top-pages")
     fun getTopPages(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) from: LocalDate,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
+        @RequestParam(defaultValue = "UTC") tz: String,
     ): ApiResponse<List<PageViewCount>> {
-        return ApiResponse(analyticsQueryService.getTopPages(from.atStartOfDay(), to.atTime(LocalTime.MAX)))
+        val (utcFrom, utcTo) = toUtcRange(from, to, tz)
+        return ApiResponse(analyticsQueryService.getTopPages(utcFrom, utcTo))
     }
 
     @GetMapping("/referrers")
     fun getTopReferrers(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) from: LocalDate,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
+        @RequestParam(defaultValue = "UTC") tz: String,
     ): ApiResponse<List<ReferrerCount>> {
-        return ApiResponse(analyticsQueryService.getTopReferrers(from.atStartOfDay(), to.atTime(LocalTime.MAX)))
+        val (utcFrom, utcTo) = toUtcRange(from, to, tz)
+        return ApiResponse(analyticsQueryService.getTopReferrers(utcFrom, utcTo))
     }
 
     @GetMapping("/visitor-locations")
     fun getVisitorLocations(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) from: LocalDate,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
+        @RequestParam(defaultValue = "UTC") tz: String,
     ): ApiResponse<List<VisitorLocation>> {
-        return ApiResponse(analyticsQueryService.getVisitorLocations(from.atStartOfDay(), to.atTime(LocalTime.MAX)))
+        val (utcFrom, utcTo) = toUtcRange(from, to, tz)
+        return ApiResponse(analyticsQueryService.getVisitorLocations(utcFrom, utcTo))
     }
 
     @GetMapping("/ip-access-history")
@@ -77,8 +97,10 @@ class AnalyticsController(
         @RequestParam ip: String,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) from: LocalDate,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
+        @RequestParam(defaultValue = "UTC") tz: String,
     ): ApiResponse<List<IpAccessHistory>> {
-        return ApiResponse(analyticsQueryService.getIpAccessHistory(ip, from.atStartOfDay(), to.atTime(LocalTime.MAX)))
+        val (utcFrom, utcTo) = toUtcRange(from, to, tz)
+        return ApiResponse(analyticsQueryService.getIpAccessHistory(ip, utcFrom, utcTo))
     }
 
     @GetMapping("/article-access-history")
@@ -86,7 +108,9 @@ class AnalyticsController(
         @RequestParam articleId: Long,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) from: LocalDate,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
+        @RequestParam(defaultValue = "UTC") tz: String,
     ): ApiResponse<List<ArticleAccessHistory>> {
-        return ApiResponse(analyticsQueryService.getArticleAccessHistory(articleId, from.atStartOfDay(), to.atTime(LocalTime.MAX)))
+        val (utcFrom, utcTo) = toUtcRange(from, to, tz)
+        return ApiResponse(analyticsQueryService.getArticleAccessHistory(articleId, utcFrom, utcTo))
     }
 }

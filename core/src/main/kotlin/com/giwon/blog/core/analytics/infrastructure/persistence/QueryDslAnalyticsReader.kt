@@ -81,16 +81,25 @@ class QueryDslAnalyticsReader(
             .fetch()
     }
 
-    override fun findDailyVisitors(from: LocalDate, to: LocalDate): List<DailyVisitorCount> {
+    override fun findDailyVisitors(from: LocalDateTime, to: LocalDateTime, timezone: String): List<DailyVisitorCount> {
+        val dateInTz = Expressions.stringTemplate(
+            "TO_CHAR({0} AT TIME ZONE {1}, 'YYYY-MM-DD')",
+            pageView.createdAt,
+            Expressions.constant(timezone),
+        )
         return queryFactory
             .select(Projections.constructor(
                 DailyVisitorCount::class.java,
-                dailyVisitorStats.date.stringValue(),
-                dailyVisitorStats.visitorCount,
+                dateInTz,
+                pageView.sessionId.countDistinct(),
             ))
-            .from(dailyVisitorStats)
-            .where(dailyVisitorStats.date.between(from, to))
-            .orderBy(dailyVisitorStats.date.asc())
+            .from(pageView)
+            .where(
+                pageView.createdAt.between(from, to),
+                pageView.sessionId.isNotNull,
+            )
+            .groupBy(dateInTz)
+            .orderBy(dateInTz.asc())
             .fetch()
     }
 
