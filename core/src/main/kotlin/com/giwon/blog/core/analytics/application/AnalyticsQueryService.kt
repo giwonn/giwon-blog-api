@@ -21,7 +21,25 @@ class AnalyticsQueryService(
     }
 
     fun getDailyVisitors(from: LocalDate, to: LocalDate): List<DailyVisitorCount> {
-        return analyticsReader.findDailyVisitors(from, to)
+        val today = LocalDate.now()
+        val result = mutableListOf<DailyVisitorCount>()
+
+        // 과거 데이터: daily_visitor_stats에서 조회
+        if (from < today) {
+            val statsTo = if (to < today) to else today.minusDays(1)
+            result.addAll(analyticsReader.findDailyVisitors(from, statsTo))
+        }
+
+        // 오늘 데이터: page_views에서 실시간 카운팅
+        if (to >= today) {
+            val todayCount = analyticsReader.countDistinctSessions(
+                today.atStartOfDay(),
+                today.plusDays(1).atStartOfDay(),
+            )
+            result.add(DailyVisitorCount(date = today.toString(), visitorCount = todayCount))
+        }
+
+        return result
     }
 
     fun getTopPages(from: LocalDateTime, to: LocalDateTime): List<PageViewCount> {
