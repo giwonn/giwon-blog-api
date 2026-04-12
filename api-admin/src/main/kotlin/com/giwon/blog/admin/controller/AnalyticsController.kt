@@ -4,6 +4,7 @@ import com.giwon.blog.common.dto.ApiResponse
 import com.giwon.blog.core.analytics.application.AnalyticsOverview
 import com.giwon.blog.core.analytics.application.AnalyticsQueryService
 import com.giwon.blog.core.analytics.domain.DailyPageViewCount
+import com.giwon.blog.core.analytics.domain.DailyVisitorCount
 import com.giwon.blog.core.analytics.domain.ArticleAccessHistory
 import com.giwon.blog.core.analytics.domain.IpAccessHistory
 import com.giwon.blog.core.analytics.domain.PageViewCount
@@ -37,6 +38,14 @@ class AnalyticsController(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
     ): ApiResponse<List<DailyPageViewCount>> {
         return ApiResponse(analyticsQueryService.getDailyPageViews(from.atStartOfDay(), to.atTime(LocalTime.MAX)))
+    }
+
+    @GetMapping("/daily-visitors")
+    fun getDailyVisitors(
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) from: LocalDate,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate,
+    ): ApiResponse<List<DailyVisitorCount>> {
+        return ApiResponse(analyticsQueryService.getDailyVisitors(from, to))
     }
 
     @GetMapping("/top-pages")

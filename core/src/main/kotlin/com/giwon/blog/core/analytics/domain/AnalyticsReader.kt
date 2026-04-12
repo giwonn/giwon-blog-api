@@ -7,6 +7,7 @@ interface AnalyticsReader {
     fun findTopPages(from: LocalDateTime, to: LocalDateTime): List<PageViewCount>
     fun findTopReferrers(from: LocalDateTime, to: LocalDateTime): List<ReferrerCount>
     fun findDailyPageViews(from: LocalDateTime, to: LocalDateTime): List<DailyPageViewCount>
+    fun findDailyVisitors(from: LocalDate, to: LocalDate): List<DailyVisitorCount>
     fun countDistinctSessions(from: LocalDateTime, to: LocalDateTime): Long
     fun sumViewCountByArticleIdSince(since: LocalDate): List<ArticleViewCount>
     fun findTopArticleStats(limit: Int): List<ArticleStatsRow>
@@ -20,6 +21,7 @@ interface AnalyticsReader {
 data class PageViewCount(val articleId: Long, val title: String, val viewCount: Long)
 data class ReferrerCount(val referrer: String, val viewCount: Long)
 data class DailyPageViewCount(val date: String, val viewCount: Long)
+data class DailyVisitorCount(val date: String, val visitorCount: Long)
 data class ArticleViewCount(val articleId: Long, val viewCount: Long)
 data class ArticleStatsRow(val articleId: Long, val viewCount: Long)
 data class VisitorCount(val count: Long)

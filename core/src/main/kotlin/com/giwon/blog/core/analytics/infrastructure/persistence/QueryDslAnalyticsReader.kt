@@ -81,6 +81,19 @@ class QueryDslAnalyticsReader(
             .fetch()
     }
 
+    override fun findDailyVisitors(from: LocalDate, to: LocalDate): List<DailyVisitorCount> {
+        return queryFactory
+            .select(Projections.constructor(
+                DailyVisitorCount::class.java,
+                dailyVisitorStats.date.stringValue(),
+                dailyVisitorStats.visitorCount,
+            ))
+            .from(dailyVisitorStats)
+            .where(dailyVisitorStats.date.between(from, to))
+            .orderBy(dailyVisitorStats.date.asc())
+            .fetch()
+    }
+
     override fun countDistinctSessions(from: LocalDateTime, to: LocalDateTime): Long {
         return queryFactory
             .select(pageView.sessionId.countDistinct())

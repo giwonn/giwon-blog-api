@@ -2,6 +2,7 @@ package com.giwon.blog.core.analytics.application
 
 import com.giwon.blog.core.analytics.domain.*
 import org.springframework.stereotype.Service
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Service
@@ -17,6 +18,10 @@ class AnalyticsQueryService(
 
     fun getDailyPageViews(from: LocalDateTime, to: LocalDateTime): List<DailyPageViewCount> {
         return analyticsReader.findDailyPageViews(from, to)
+    }
+
+    fun getDailyVisitors(from: LocalDate, to: LocalDate): List<DailyVisitorCount> {
+        return analyticsReader.findDailyVisitors(from, to)
     }
 
     fun getTopPages(from: LocalDateTime, to: LocalDateTime): List<PageViewCount> {
